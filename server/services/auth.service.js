@@ -1,47 +1,58 @@
 import bcrypt from "bcryptjs";
 import { db } from "../config/db.js";
 import { users } from "../config/usersSchema.js";
-import { eq } from "drizzle-orm";
+import { emailVerificationCodes } from "../config/emailVerificationSchema.js";
+import { and, desc, eq, gt } from "drizzle-orm";
 import { issueTokens } from "./token.service.js";
 import { sendEmail } from "../config/sendgrid.js";
 import { refreshTokens } from "../config/refreshTokenSchema.js";
 import { resetTokens } from "../config/resetTokensSchema.js"; 
-import { randomUUID } from "crypto";
+import { randomInt, randomUUID } from "crypto";
 
 
-export async function resetPasswordReset(email) {
-  const normalized = email.trim().toLowerCase();
-  const [user] = await db.select().from(users).where(eq(users.email, normalized));
+const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
+const VERIFY_CODE_EXPIRES_MINUTES = Number(process.env.VERIFY_CODE_EXPIRES_MINUTES) || 10;
+const RESET_TOKEN_EXPIRES_MINUTES = Number(process.env.RESET_TOKEN_EXPIRES_MINUTES) || 60;
 
-  if (!user) {
-    const err = new Error("User not found");
-    err.status = 404;
-    throw err;
-  }
+function publicUser(user) {
+  return {
+    id: user.id,
+    fullName: user.fullName,
+    email: user.email,
+    role: user.role,
+    isVerified: user.isVerified,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
 
-  const token = randomUUID();
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
+function frontendUrl() {
+  return process.env.FRONTEND_URL || "http://localhost:5173";
+}
 
-  await db.insert(resetTokens).values({
+async function createAndSendVerificationCode(user) {
+  const code = String(randomInt(100000, 1000000));
+  const codeHash = await bcrypt.hash(code, SALT_ROUNDS);
+  const expiresAt = new Date(Date.now() + VERIFY_CODE_EXPIRES_MINUTES * 60 * 1000);
+
+  await db.delete(emailVerificationCodes).where(eq(emailVerificationCodes.userId, user.id));
+  await db.insert(emailVerificationCodes).values({
     userId: user.id,
-    token,
+    codeHash,
     expiresAt,
   });
 
   await sendEmail({
     to: user.email,
-    subject: "Password Reset",
-    text: `Click the link to reset: ${process.env.APP_URL}/api/auth/reset/${token}`,
-    html: `<p>Click <a href="${process.env.APP_URL}/api/auth/reset/${token}">here</a> to reset your password.</p>`,
+    subject: "Your verification code",
+    text: `Your verification code is ${code}. It expires in ${VERIFY_CODE_EXPIRES_MINUTES} minutes.`,
+    html: `<p>Your verification code is <strong>${code}</strong>.</p><p>It expires in ${VERIFY_CODE_EXPIRES_MINUTES} minutes.</p>`,
   });
-
-  return { message: "Password reset email sent" };
 }
 
-const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
-
 // REGISTER
-export async function register({ email, password }) {
+export async function register({ email, password, fullName }) {
   const normalized = email.trim().toLowerCase();
 
   const existing = await db.select().from(users).where(eq(users.email, normalized));
@@ -56,29 +67,17 @@ export async function register({ email, password }) {
   const [inserted] = await db
     .insert(users)
     .values({
+      fullName: fullName?.trim() || null,
       email: normalized,
       passwordHash,
       role: "user",
       isVerified: false,
+      isActive: true,
     })
     .returning();
 
-  const { accessToken, refreshToken } = await issueTokens(inserted);
-
-  // Save refresh token in DB
-  await db.insert(refreshTokens).values({
-    userId: inserted.id,
-    token: refreshToken,
-  });
-
-  await sendEmail({
-    to: inserted.email,
-    subject: "Verify your account",
-    text: `Click the link to verify: ${process.env.APP_URL}/api/verify/${inserted.id}`,
-    html: `<p>Click <a href="${process.env.APP_URL}/api/verify/${inserted.id}">here</a> to verify your account.</p>`,
-  });
-
-  return { user: inserted, accessToken, refreshToken };
+  await createAndSendVerificationCode(inserted);
+  return { user: publicUser(inserted), requiresVerification: true };
 }
 
 // LOGIN
@@ -98,15 +97,21 @@ export async function login({ email, password }) {
     throw err;
   }
 
+  if (!user.isActive) {
+    const err = new Error("Account is deactivated. Contact support.");
+    err.status = 403;
+    throw err;
+  }
+
+  if (!user.isVerified) {
+    const err = new Error("Please verify your email before logging in.");
+    err.status = 403;
+    throw err;
+  }
+
   const { accessToken, refreshToken } = await issueTokens(user);
 
-  // Save refresh token in DB
-  await db.insert(refreshTokens).values({
-    userId: user.id,
-    token: refreshToken,
-  });
-
-  return { user, accessToken, refreshToken };
+  return { user: publicUser(user), accessToken, refreshToken };
 }
 
 // RESEND VERIFICATION
@@ -115,32 +120,66 @@ export async function resendVerificationEmail(email) {
   const [user] = await db.select().from(users).where(eq(users.email, normalized));
 
   if (!user) {
-    const err = new Error("User not found");
-    err.status = 404;
-    throw err;
+    return { message: "If the account exists, a verification code has been sent." };
   }
 
   if (user.isVerified) {
-    const err = new Error("User already verified");
+    return { message: "Email already verified." };
+  }
+
+  await createAndSendVerificationCode(user);
+  return { message: "If the account exists, a verification code has been sent." };
+}
+
+export async function verifyEmailCode({ email, code }) {
+  const normalized = email.trim().toLowerCase();
+  const [user] = await db.select().from(users).where(eq(users.email, normalized));
+  if (!user) {
+    const err = new Error("Invalid email or code");
     err.status = 400;
     throw err;
   }
 
-  await sendEmail({
-    to: user.email,
-    subject: "Verify your account",
-    text: `Click the link to verify: ${process.env.APP_URL}/api/verify/${user.id}`,
-    html: `<p>Click <a href="${process.env.APP_URL}/api/verify/${user.id}">here</a> to verify your account.</p>`,
+  if (user.isVerified) {
+    return { message: "Email already verified." };
+  }
+
+  const [storedCode] = await db
+    .select()
+    .from(emailVerificationCodes)
+    .where(
+      and(
+        eq(emailVerificationCodes.userId, user.id),
+        gt(emailVerificationCodes.expiresAt, new Date())
+      )
+    )
+    .orderBy(desc(emailVerificationCodes.createdAt))
+    .limit(1);
+
+  if (!storedCode) {
+    const err = new Error("Verification code has expired. Please request a new code.");
+    err.status = 400;
+    throw err;
+  }
+
+  const isMatch = await bcrypt.compare(code, storedCode.codeHash);
+  if (!isMatch) {
+    const err = new Error("Invalid email or code");
+    err.status = 400;
+    throw err;
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(users)
+      .set({ isVerified: true, updatedAt: new Date() })
+      .where(eq(users.id, user.id));
+    await tx.delete(emailVerificationCodes).where(eq(emailVerificationCodes.userId, user.id));
   });
 
-  return { message: "Verification email resent" };
+  return { message: "Email verified successfully." };
 }
 
-// LOGOUT
-export async function logout(userId) {
-  await db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
-  return { message: "Logged out successfully" };
-}
 export async function resetPassword(token, newPassword) {
   const [stored] = await db.select().from(resetTokens).where(eq(resetTokens.token, token));
 
@@ -152,40 +191,135 @@ export async function resetPassword(token, newPassword) {
 
   const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
-  await db.update(users).set({ passwordHash }).where(eq(users.id, stored.userId));
-
-  // Delete used token
-  await db.delete(resetTokens).where(eq(resetTokens.token, token));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(users)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(users.id, stored.userId));
+    await tx.delete(resetTokens).where(eq(resetTokens.userId, stored.userId));
+    await tx.delete(refreshTokens).where(eq(refreshTokens.userId, stored.userId));
+  });
 
   return { message: "Password reset successful" };
 }
+
 // Request password reset
 export async function requestPasswordReset(email) {
   const normalized = email.trim().toLowerCase();
   const [user] = await db.select().from(users).where(eq(users.email, normalized));
 
   if (!user) {
-    const err = new Error("User not found");
-    err.status = 404;
-    throw err;
+    return {
+      message: "If the account exists, a reset link has been sent.",
+    };
   }
 
   const token = randomUUID();
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
+  const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRES_MINUTES * 60 * 1000);
 
+  await db.delete(resetTokens).where(eq(resetTokens.userId, user.id));
   await db.insert(resetTokens).values({
     userId: user.id,
     token,
     expiresAt,
   });
 
+  const resetUrl = `${frontendUrl()}/reset-password?token=${encodeURIComponent(token)}`;
   await sendEmail({
     to: user.email,
     subject: "Password Reset",
-    text: `Click the link to reset: ${process.env.APP_URL}/api/auth/reset/${token}`,
-    html: `<p>Click <a href="${process.env.APP_URL}/api/auth/reset/${token}">here</a> to reset your password.</p>`,
+    text: `Use this link to reset your password: ${resetUrl}`,
+    html: `<p>Use this link to reset your password:</p><p><a href="${resetUrl}">${resetUrl}</a></p>`,
   });
 
-  return { message: "Password reset email sent" };
+  return { message: "If the account exists, a reset link has been sent." };
 }
 
+// LOGOUT
+export async function logout(userId) {
+  await db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
+  return { message: "Logged out successfully" };
+}
+
+export async function getProfile(userId) {
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!user) {
+    const err = new Error("User not found");
+    err.status = 404;
+    throw err;
+  }
+  return publicUser(user);
+}
+
+export async function listUsers() {
+  return db
+    .select({
+      id: users.id,
+      fullName: users.fullName,
+      email: users.email,
+      role: users.role,
+      isVerified: users.isVerified,
+      isActive: users.isActive,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+    })
+    .from(users)
+    .orderBy(desc(users.createdAt));
+}
+
+export async function updateUserRole(userId, role) {
+  const allowedRoles = new Set(["user", "admin"]);
+  if (!allowedRoles.has(role)) {
+    const err = new Error("Invalid role");
+    err.status = 400;
+    throw err;
+  }
+
+  const [updated] = await db
+    .update(users)
+    .set({ role, updatedAt: new Date() })
+    .where(eq(users.id, userId))
+    .returning();
+
+  if (!updated) {
+    const err = new Error("User not found");
+    err.status = 404;
+    throw err;
+  }
+
+  return publicUser(updated);
+}
+
+export async function updateUserFlags(userId, { isActive, isVerified }) {
+  const updateData = { updatedAt: new Date() };
+  if (typeof isActive === "boolean") {
+    updateData.isActive = isActive;
+  }
+  if (typeof isVerified === "boolean") {
+    updateData.isVerified = isVerified;
+  }
+
+  if (Object.keys(updateData).length === 1) {
+    const err = new Error("No updatable fields provided");
+    err.status = 400;
+    throw err;
+  }
+
+  const [updated] = await db
+    .update(users)
+    .set(updateData)
+    .where(eq(users.id, userId))
+    .returning();
+
+  if (!updated) {
+    const err = new Error("User not found");
+    err.status = 404;
+    throw err;
+  }
+
+  if (isActive === false) {
+    await db.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
+  }
+
+  return publicUser(updated);
+}

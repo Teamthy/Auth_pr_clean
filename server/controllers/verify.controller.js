@@ -1,22 +1,16 @@
-import { db } from "../config/db.js";
-import { users } from "../config/usersSchema.js";
-import { eq } from "drizzle-orm";
+import { validationResult } from "express-validator";
+import { verifyEmailCode } from "../services/auth.service.js";
 
 export async function verify(req, res, next) {
   try {
-    const { id } = req.params;
-
-    const [updated] = await db
-      .update(users)
-      .set({ isVerified: true })
-      .where(eq(users.id, id))
-      .returning();
-
-    if (!updated) {
-      return res.status(404).send("User not found");
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
 
-    return res.send("Account verified successfully!");
+    const { email, code } = req.body;
+    const result = await verifyEmailCode({ email, code });
+    return res.json(result);
   } catch (err) {
     next(err);
   }

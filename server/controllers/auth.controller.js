@@ -16,17 +16,14 @@ export async function register(req, res, next) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password } = req.body;
-    const result = await authService.register({ email, password });
+    const { fullName, email, password } = req.body;
+    const result = await authService.register({ fullName, email, password });
 
     if (result.refreshToken) {
       res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, COOKIE_OPTIONS);
     }
 
-    return res.status(201).json({
-      user: result.user,
-      accessToken: result.accessToken,
-    });
+    return res.status(201).json(result);
   } catch (err) {
     next(err);
   }

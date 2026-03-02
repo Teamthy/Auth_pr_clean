@@ -25,13 +25,9 @@ pool.on("error", (err) => {
   console.error("PG Pool error:", err);
 });
 
-pool.on("connect", (client) => {
-  console.log("PG Pool connected a client");
-});
-
 pool.on("acquire", () => {
   // optional: log when a client is checked out
 });
 
-export const db = drizzle(pool);
+export const db = drizzle(pool, { schema });
 export { schema, pool };

@@ -12,11 +12,10 @@ export default function Login() {
     try {
       const { data } = await api.post("/auth/login", { email, password });
       localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
       navigate("/profile");
     } catch (err) {
-      console.error(err);
-      alert("Login failed. Please check your credentials.");
+      const message = err.response?.data?.error || "Login failed. Please check your credentials.";
+      alert(message);
     }
   }
 

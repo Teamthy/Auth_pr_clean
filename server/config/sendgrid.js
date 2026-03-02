@@ -1,8 +1,25 @@
 import sgMail from "@sendgrid/mail";
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const hasSendgridApiKey = Boolean(process.env.SENDGRID_API_KEY);
+if (hasSendgridApiKey) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 export async function sendEmail({ to, subject, text, html }) {
+  if (!process.env.EMAIL_FROM) {
+    throw new Error("EMAIL_FROM is required to send email");
+  }
+
+  if (!hasSendgridApiKey) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("SENDGRID_API_KEY is required in production");
+    }
+
+    console.log(`[DEV EMAIL] To: ${to} | Subject: ${subject}`);
+    console.log(text || html || "");
+    return { mocked: true };
+  }
+
   const msg = {
     to,
     from: process.env.EMAIL_FROM, // must be a verified sender in SendGrid
@@ -11,7 +28,5 @@ export async function sendEmail({ to, subject, text, html }) {
     html,
   };
 
-  const response = await sgMail.send(msg);
-  console.log("Email sent:", response[0].statusCode);
-  return response;
+  return sgMail.send(msg);
 }

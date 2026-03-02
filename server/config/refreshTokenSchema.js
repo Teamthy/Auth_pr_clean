@@ -6,6 +6,7 @@ export const refreshTokens = pgTable("refresh_tokens", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  token: uuid("token").defaultRandom().notNull(),
+  token: uuid("token").defaultRandom().notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
 });
