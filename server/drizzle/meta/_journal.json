@@ -8,6 +8,13 @@
       "when": 1772230126392,
       "tag": "0000_nasty_freak",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772487050501,
+      "tag": "0001_great_vulture",
+      "breakpoints": true
     }
   ]
 }

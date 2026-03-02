@@ -1,76 +1,78 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "./api";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "./context/useAuth";
 
 export default function Login() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate();
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setError("");
+    setIsSubmitting(true);
+
     try {
-      const { data } = await api.post("/auth/login", { email, password });
-      localStorage.setItem("accessToken", data.accessToken);
-      navigate("/profile");
+      const user = await login({ email, password });
+      const fallbackRoute = user.role === "admin" ? "/admin" : "/dashboard";
+      const nextRoute = location.state?.from?.pathname || fallbackRoute;
+      navigate(nextRoute, { replace: true });
     } catch (err) {
-      const message = err.response?.data?.error || "Login failed. Please check your credentials.";
-      alert(message);
+      const message = err.response?.data?.error || "Login failed.";
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   return (
-    <div className="flex h-[700px] w-full">
-      <div className="w-full hidden md:inline-block">
-        <img
-          className="h-full"
-          src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/leftSideImage.png"
-          alt="leftSideImage"
-        />
-      </div>
-
-      <div className="w-full flex flex-col items-center justify-center">
-        <form
-          onSubmit={handleSubmit}
-          className="md:w-96 w-80 flex flex-col items-center justify-center"
+    <section className="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      <h1 className="text-2xl font-semibold text-slate-900">Login</h1>
+      <p className="mt-2 text-sm text-slate-600">Sign in to your account.</p>
+      <form onSubmit={handleSubmit} className="mt-6 grid gap-4">
+        <label className="grid gap-1 text-sm font-medium text-slate-700">
+          Email
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className="rounded-md border border-slate-300 px-3 py-2 outline-none ring-cyan-300 focus:ring"
+            required
+          />
+        </label>
+        <label className="grid gap-1 text-sm font-medium text-slate-700">
+          Password
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="rounded-md border border-slate-300 px-3 py-2 outline-none ring-cyan-300 focus:ring"
+            required
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="rounded-md bg-slate-900 px-4 py-2 font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-400"
         >
-          <h2 className="text-4xl text-gray-900 font-medium">Sign in</h2>
-          <p className="text-sm text-gray-500/90 mt-3">
-            Welcome back! Please sign in to continue
-          </p>
+          {isSubmitting ? "Signing in..." : "Login"}
+        </button>
+      </form>
 
-          {/* Email input */}
-          <div className="flex items-center w-full border border-gray-300/60 h-12 rounded-full pl-6 gap-2 mt-6">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email id"
-              className="bg-transparent text-gray-500/80 outline-none text-sm w-full h-full"
-              required
-            />
-          </div>
+      {error && <p className="mt-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
 
-          {/* Password input */}
-          <div className="flex items-center w-full border border-gray-300/60 h-12 rounded-full pl-6 gap-2 mt-6">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              className="bg-transparent text-gray-500/80 outline-none text-sm w-full h-full"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="mt-8 w-full h-11 rounded-full text-white bg-indigo-500 hover:opacity-90 transition-opacity"
-          >
-            Login
-          </button>
-        </form>
+      <div className="mt-4 flex items-center justify-between text-sm">
+        <Link to="/forgot-password" className="font-medium text-cyan-700 hover:underline">
+          Forgot password?
+        </Link>
+        <Link to="/register" className="font-medium text-cyan-700 hover:underline">
+          Create account
+        </Link>
       </div>
-    </div>
+    </section>
   );
 }

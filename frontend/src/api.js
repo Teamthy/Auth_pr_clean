@@ -38,6 +38,8 @@ api.interceptors.response.use(
       "/auth/login",
       "/auth/register",
       "/auth/refresh",
+      "/auth/logout",
+      "/auth/resend-verification",
       "/auth/forgot-password",
       "/auth/reset-password",
       "/auth/verify-email",

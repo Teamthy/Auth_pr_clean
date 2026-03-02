@@ -17,7 +17,7 @@ export default function AuthProvider({ children }) {
     try {
       const profile = await authService.getProfile();
       setUser(profile);
-    } catch (_error) {
+    } catch {
       localStorage.removeItem("accessToken");
       setUser(null);
     } finally {
@@ -48,7 +48,7 @@ export default function AuthProvider({ children }) {
   const logout = useCallback(async () => {
     try {
       await authService.logout();
-    } catch (_error) {
+    } catch {
       // Clear local auth state regardless of backend response.
     } finally {
       localStorage.removeItem("accessToken");
