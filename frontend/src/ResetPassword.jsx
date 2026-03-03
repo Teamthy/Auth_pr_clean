@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "./context/useAuth";
+import AuthPageWrapper from "./AuthPageWrapper";
 
 export default function ResetPassword() {
   const { resetPassword } = useAuth();
@@ -44,50 +45,79 @@ export default function ResetPassword() {
   }
 
   return (
-    <section className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm md:p-10">
-      <p className="inline-flex rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-800">
-        Password Reset
-      </p>
-      <h1 className="mt-4 text-3xl font-semibold text-slate-900">Reset Password</h1>
-      <p className="mt-2 text-sm text-slate-600">Set a new password for your account.</p>
-      <form onSubmit={handleSubmit} className="mt-7 grid gap-4">
-        <label className="grid gap-1 text-sm font-medium text-slate-700">
-          New password
+    <AuthPageWrapper imageUrl="/leftSideImage.png" imageAlt="leftSideImage">
+      <form
+        onSubmit={handleSubmit}
+        className="auth-form"
+      >
+        <h2 className="auth-title">Reset Password</h2>
+        <p className="auth-sub">Set a new password for your account.</p>
+
+        <div className="mt-8 input-wrap">
+          <svg
+            width="13"
+            height="17"
+            viewBox="0 0 13 17"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M13 8.5c0-.938-.729-1.7-1.625-1.7h-.812V4.25C10.563 1.907 8.74 0 6.5 0S2.438 1.907 2.438 4.25V6.8h-.813C.729 6.8 0 7.562 0 8.5v6.8c0 .938.729 1.7 1.625 1.7h9.75c.896 0 1.625-.762 1.625-1.7zM4.063 4.25c0-1.406 1.093-2.55 2.437-2.55s2.438 1.144 2.438 2.55V6.8H4.061z"
+              fill="#6B7280"
+            />
+          </svg>
           <input
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="rounded-xl border border-slate-300 px-3 py-2.5 outline-none ring-cyan-300 focus:ring"
+            placeholder="New password"
+            className="input-field"
             required
           />
-        </label>
-        <label className="grid gap-1 text-sm font-medium text-slate-700">
-          Confirm password
+        </div>
+        <div className="mt-4 input-wrap">
+          <svg
+            width="13"
+            height="17"
+            viewBox="0 0 13 17"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M13 8.5c0-.938-.729-1.7-1.625-1.7h-.812V4.25C10.563 1.907 8.74 0 6.5 0S2.438 1.907 2.438 4.25V6.8h-.813C.729 6.8 0 7.562 0 8.5v6.8c0 .938.729 1.7 1.625 1.7h9.75c.896 0 1.625-.762 1.625-1.7zM4.063 4.25c0-1.406 1.093-2.55 2.437-2.55s2.438 1.144 2.438 2.55V6.8H4.061z"
+              fill="#6B7280"
+            />
+          </svg>
           <input
             type="password"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            className="rounded-xl border border-slate-300 px-3 py-2.5 outline-none ring-cyan-300 focus:ring"
+            placeholder="Confirm password"
+            className="input-field"
             required
           />
-        </label>
+        </div>
+
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-full bg-slate-900 px-4 py-2.5 font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="btn-primary btn-primary--violet"
         >
           {isSubmitting ? "Saving..." : "Reset password"}
         </button>
+
+        {message && (
+          <div className="auth-info auth-info--success">
+            {message}{" "}
+            <Link to="/login" className="footer-link">
+              Login
+            </Link>
+          </div>
+        )}
+        {error && (
+          <p className="auth-info auth-info--error">{error}</p>
+        )}
       </form>
-      {message && (
-        <div className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">
-          {message}{" "}
-          <Link to="/login" className="font-medium underline">
-            Login
-          </Link>
-        </div>
-      )}
-      {error && <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
-    </section>
+    </AuthPageWrapper>
   );
 }

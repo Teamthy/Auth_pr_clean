@@ -1,24 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthContext } from "./auth-context";
 import * as authService from "../authService";
+import { clearAccessToken, setAccessToken } from "../api";
 
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const syncProfile = useCallback(async () => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      setUser(null);
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const profile = await authService.getProfile();
       setUser(profile);
     } catch {
-      localStorage.removeItem("accessToken");
+      clearAccessToken();
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -31,7 +25,7 @@ export default function AuthProvider({ children }) {
 
   const login = useCallback(async ({ email, password }) => {
     const data = await authService.login({ email, password });
-    localStorage.setItem("accessToken", data.accessToken);
+    setAccessToken(data.accessToken);
     setUser(data.user);
     return data.user;
   }, []);
@@ -51,7 +45,7 @@ export default function AuthProvider({ children }) {
     } catch {
       // Clear local auth state regardless of backend response.
     } finally {
-      localStorage.removeItem("accessToken");
+      clearAccessToken();
       setUser(null);
     }
   }, []);

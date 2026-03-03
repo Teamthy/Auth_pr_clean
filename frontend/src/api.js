@@ -5,10 +5,19 @@ const api = axios.create({
   withCredentials: true,
 });
 
+let accessToken = null;
+
+export function setAccessToken(token) {
+  accessToken = token;
+}
+
+export function clearAccessToken() {
+  accessToken = null;
+}
+
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
   return config;
 });
@@ -61,12 +70,12 @@ api.interceptors.response.use(
       try {
         const refreshResponse = await api.post("/auth/refresh");
         const newAccessToken = refreshResponse.data.accessToken;
-        localStorage.setItem("accessToken", newAccessToken);
+        setAccessToken(newAccessToken);
         resolveRefreshQueue(null, newAccessToken);
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        localStorage.removeItem("accessToken");
+        clearAccessToken();
         resolveRefreshQueue(refreshError, null);
         return Promise.reject(refreshError);
       } finally {

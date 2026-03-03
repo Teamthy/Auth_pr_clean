@@ -1,12 +1,5 @@
 import { refreshAccessToken } from "../services/token.service.js";
-
-const REFRESH_COOKIE_NAME = "refreshToken";
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  sameSite: "lax",
-  secure: process.env.NODE_ENV === "production",
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-};
+import { REFRESH_COOKIE_NAME, refreshCookieOptions } from "../config/cookies.js";
 
 export async function refreshController(req, res, next) {
   try {
@@ -17,7 +10,7 @@ export async function refreshController(req, res, next) {
 
     const result = await refreshAccessToken(refreshToken);
     if (result.refreshToken) {
-      res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, COOKIE_OPTIONS);
+      res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, refreshCookieOptions);
     }
 
     return res.json({ accessToken: result.accessToken });

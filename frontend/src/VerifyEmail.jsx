@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "./context/useAuth";
+import AuthPageWrapper from "./AuthPageWrapper";
 
 export default function VerifyEmail() {
   const { verifyEmail, resendVerification } = useAuth();
@@ -42,64 +43,83 @@ export default function VerifyEmail() {
   }
 
   return (
-    <section className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm md:p-10">
-      <p className="inline-flex rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-800">
-        Email Verification
-      </p>
-      <h1 className="mt-4 text-3xl font-semibold text-slate-900">Verify Your Email</h1>
-      <p className="mt-2 text-sm text-slate-600">
-        Enter the 6-digit code sent to your inbox and activate your account.
-      </p>
+    <AuthPageWrapper imageUrl="/leftSideImage.png" imageAlt="leftSideImage">
+      <form
+        onSubmit={handleVerify}
+        className="auth-form"
+      >
+        <h2 className="auth-title">Verify Your Email</h2>
+        <p className="auth-sub">
+          Enter the 6-digit code sent to your inbox and activate your account.
+        </p>
 
-      <form onSubmit={handleVerify} className="mt-7 grid gap-4">
-        <label className="grid gap-1 text-sm font-medium text-slate-700">
-          Email
+        <div className="mt-8 input-wrap">
+          <svg
+            width="16"
+            height="11"
+            viewBox="0 0 16 11"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M0 .55.571 0H15.43l.57.55v9.9l-.571.55H.57L0 10.45zm1.143 1.138V9.9h13.714V1.69l-6.503 4.8h-.697zM13.749 1.1H2.25L8 5.356z"
+              fill="#6B7280"
+            />
+          </svg>
           <input
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="rounded-xl border border-slate-300 px-3 py-2.5 outline-none ring-cyan-300 focus:ring"
+            placeholder="Email id"
+            className="input-field"
             required
           />
-        </label>
-        <label className="grid gap-1 text-sm font-medium text-slate-700">
-          Verification code
+        </div>
+
+        <div className="mt-4 input-wrap">
           <input
             type="text"
             value={code}
             onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
-            className="rounded-xl border border-slate-300 px-3 py-2.5 tracking-[0.35em] outline-none ring-cyan-300 focus:ring"
+            placeholder="000000"
+            maxLength={6}
+            className="input-field tracking-[0.35em]"
             required
           />
-        </label>
+        </div>
+
         <button
           type="submit"
           disabled={!canSubmit || isSubmitting}
-          className="rounded-full bg-slate-900 px-4 py-2.5 font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="btn-primary btn-primary--cyan"
         >
           {isSubmitting ? "Verifying..." : "Verify Email"}
         </button>
+
+        <button
+          type="button"
+          onClick={handleResend}
+          className="mt-3 underline-link"
+        >
+          Resend code
+        </button>
+
+        {message && (
+          <p className="auth-info auth-info--success">{message}</p>
+        )}
+        {error && (
+          <p className="auth-info auth-info--error">{error}</p>
+        )}
+
+        <p className="footer-text">
+          Already verified? {" "}
+          <Link to="/login" className="footer-link">
+            Login
+          </Link>
+        </p>
       </form>
-
-      <button
-        type="button"
-        onClick={handleResend}
-        className="mt-3 rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-      >
-        Resend code
-      </button>
-
-      {message && (
-        <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">{message}</p>
-      )}
-      {error && <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
-
-      <p className="mt-4 text-sm text-slate-600">
-        Already verified?{" "}
-        <Link to="/login" className="font-medium text-cyan-700 hover:underline">
-          Login
-        </Link>
-      </p>
-    </section>
+    </AuthPageWrapper>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "./context/useAuth";
+import AuthPageWrapper from "./AuthPageWrapper";
 
 export default function ForgotPassword() {
   const { forgotPassword } = useAuth();
@@ -25,35 +26,54 @@ export default function ForgotPassword() {
   }
 
   return (
-    <section className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm md:p-10">
-      <p className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800">
-        Account Recovery
-      </p>
-      <h1 className="mt-4 text-3xl font-semibold text-slate-900">Forgot Password</h1>
-      <p className="mt-2 text-sm text-slate-600">Enter your email to receive a reset link.</p>
-      <form onSubmit={handleSubmit} className="mt-7 grid gap-4">
-        <label className="grid gap-1 text-sm font-medium text-slate-700">
-          Email
+    <AuthPageWrapper imageUrl="/leftSideImage.png" imageAlt="leftSideImage">
+      <form
+        onSubmit={handleSubmit}
+        className="auth-form"
+      >
+        <h2 className="auth-title">Forgot Password</h2>
+        <p className="auth-sub">Enter your email to receive a reset link</p>
+
+        <div className="mt-8 input-wrap">
+          <svg
+            width="16"
+            height="11"
+            viewBox="0 0 16 11"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M0 .55.571 0H15.43l.57.55v9.9l-.571.55H.57L0 10.45zm1.143 1.138V9.9h13.714V1.69l-6.503 4.8h-.697zM13.749 1.1H2.25L8 5.356z"
+              fill="#6B7280"
+            />
+          </svg>
           <input
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="rounded-xl border border-slate-300 px-3 py-2.5 outline-none ring-cyan-300 focus:ring"
+            placeholder="Email id"
+            className="input-field"
             required
           />
-        </label>
+        </div>
+
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-full bg-slate-900 px-4 py-2.5 font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="btn-primary btn-primary--amber"
         >
           {isSubmitting ? "Sending..." : "Send reset link"}
         </button>
+
+        {message && (
+          <p className="auth-info auth-info--success">{message}</p>
+        )}
+        {error && (
+          <p className="auth-info auth-info--error">{error}</p>
+        )}
       </form>
-      {message && (
-        <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">{message}</p>
-      )}
-      {error && <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
-    </section>
+    </AuthPageWrapper>
   );
 }

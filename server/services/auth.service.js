@@ -54,6 +54,12 @@ async function createAndSendVerificationCode(user) {
 // REGISTER
 export async function register({ email, password, fullName }) {
   const normalized = email.trim().toLowerCase();
+  const sanitizedFullName = fullName?.trim() || null;
+  if (sanitizedFullName && sanitizedFullName.length > 150) {
+    const err = new Error("Full name is too long");
+    err.status = 400;
+    throw err;
+  }
 
   const existing = await db.select().from(users).where(eq(users.email, normalized));
   if (existing.length > 0) {
@@ -67,7 +73,7 @@ export async function register({ email, password, fullName }) {
   const [inserted] = await db
     .insert(users)
     .values({
-      fullName: fullName?.trim() || null,
+      fullName: sanitizedFullName,
       email: normalized,
       passwordHash,
       role: "user",

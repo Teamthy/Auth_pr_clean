@@ -5,7 +5,7 @@ import { resend } from "../controllers/resend.controller.js";
 const router = Router();
 router.post(
   "/resend-verification",
-  [body("email").isEmail().withMessage("Valid email required")],
+  [body("email").trim().isEmail().withMessage("Valid email required").normalizeEmail()],
   resend
 );
 

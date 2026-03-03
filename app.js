@@ -18,11 +18,39 @@ import profileRoutes from "./server/routes/profile.js";
 
 
 const app = express();
+app.disable("x-powered-by");
+
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
 
 const allowedOrigins = (process.env.FRONTEND_ORIGINS || "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_MAX) || 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.AUTH_RATE_LIMIT_MAX) || 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many authentication attempts. Try again later." },
+});
+
+const strictAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.AUTH_STRICT_RATE_LIMIT_MAX) || 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many attempts from this IP. Please wait before retrying." },
+});
 
 app.use(helmet());
 app.use(
@@ -31,21 +59,27 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      return callback(new Error("CORS origin not allowed"));
+      const corsError = new Error("CORS origin not allowed");
+      corsError.status = 403;
+      return callback(corsError);
     },
     credentials: true,
   })
 );
-app.use(
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 200,
-    standardHeaders: true,
-    legacyHeaders: false,
-  })
-);
+app.use(apiLimiter);
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+app.use("/api/auth", (req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
+app.use("/api/auth/login", strictAuthLimiter);
+app.use("/api/auth/register", authLimiter);
+app.use("/api/auth/verify-email", strictAuthLimiter);
+app.use("/api/auth/resend-verification", strictAuthLimiter);
+app.use("/api/auth/forgot-password", strictAuthLimiter);
+app.use("/api/auth/reset-password", strictAuthLimiter);
+app.use("/api/auth/refresh", strictAuthLimiter);
 
 // Routes
 app.use("/api/auth", authRoutes);

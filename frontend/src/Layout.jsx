@@ -4,7 +4,13 @@ import { useAuth } from "./context/useAuth";
 export default function Layout() {
   const location = useLocation();
   const { user, logout } = useAuth();
-  const isSplitAuthPage = ["/login", "/register"].includes(location.pathname);
+  const isSplitAuthPage = [
+    "/login",
+    "/register",
+    "/verify-email",
+    "/forgot-password",
+    "/reset-password",
+  ].includes(location.pathname);
 
   return (
     <div className="min-h-screen bg-app-gradient text-slate-900">

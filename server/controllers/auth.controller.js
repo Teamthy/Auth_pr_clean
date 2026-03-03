@@ -1,13 +1,6 @@
 import { validationResult } from "express-validator";
 import * as authService from "../services/auth.service.js";
-
-const REFRESH_COOKIE_NAME = "refreshToken";
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  sameSite: "lax",
-  secure: process.env.NODE_ENV === "production",
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
-};
+import { REFRESH_COOKIE_NAME, refreshCookieOptions } from "../config/cookies.js";
 
 export async function register(req, res, next) {
   try {
@@ -20,7 +13,7 @@ export async function register(req, res, next) {
     const result = await authService.register({ fullName, email, password });
 
     if (result.refreshToken) {
-      res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, COOKIE_OPTIONS);
+      res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, refreshCookieOptions);
     }
 
     return res.status(201).json(result);
@@ -39,7 +32,7 @@ export async function login(req, res, next) {
     const result = await authService.login({ email, password });
 
     if (result.refreshToken) {
-      res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, COOKIE_OPTIONS);
+      res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, refreshCookieOptions);
     }
 
     return res.json({

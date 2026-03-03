@@ -22,6 +22,9 @@ Configuration files `tailwind.config.js` and `postcss.config.js` live at the pro
 all JSX/TSX files under `src` so that Tailwind can purge unused styles in production. To rebuild just the CSS you can
 run `npm run build:css`, but the regular `dev` and `build` scripts handle it automatically via Vite and PostCSS.
 
+Authentication screens share a common wrapper (`src/AuthPageWrapper.jsx`) that provides the two‑column layout with a
+decorative image on the left. Feel free to adjust the image URLs or reuse the component for other pages if you like.
+
 Continue with normal development, using utility classes throughout your components.
 
 ## Expanding the ESLint configuration

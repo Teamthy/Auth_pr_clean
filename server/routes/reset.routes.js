@@ -9,13 +9,13 @@ const router = Router();
 
 router.post(
   "/forgot-password",
-  [body("email").isEmail().withMessage("Valid email required")],
+  [body("email").trim().isEmail().withMessage("Valid email required").normalizeEmail()],
   forgotPassword
 );
 router.post(
   "/reset-password",
   [
-    body("token").isString().notEmpty().withMessage("Reset token is required"),
+    body("token").trim().isString().notEmpty().withMessage("Reset token is required"),
     body("password")
       .isLength({ min: 8 })
       .withMessage("Password must be at least 8 characters"),

@@ -6,8 +6,9 @@ const router = Router();
 router.post(
   "/verify-email",
   [
-    body("email").isEmail().withMessage("Valid email required"),
+    body("email").trim().isEmail().withMessage("Valid email required").normalizeEmail(),
     body("code")
+      .trim()
       .isLength({ min: 6, max: 6 })
       .withMessage("Verification code must be 6 digits")
       .isNumeric()
