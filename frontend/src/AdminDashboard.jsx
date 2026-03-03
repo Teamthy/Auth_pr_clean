@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   getAdminUsers,
@@ -9,35 +9,51 @@ import { useAuth } from "./context/useAuth";
 
 export default function AdminDashboard() {
   const { logout } = useAuth();
+  const isMountedRef = useRef(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [selectedRole, setSelectedRole] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [activeUserId, setActiveUserId] = useState(null);
   const [error, setError] = useState("");
 
   const navItems = ["Products", "Customer Stories", "Pricing", "Docs"];
 
-  async function loadUsers() {
+  const getErrorMessage = useCallback(
+    (err, fallbackMessage) =>
+      err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || fallbackMessage,
+    []
+  );
+
+  const loadUsers = useCallback(async () => {
     setIsLoading(true);
     setError("");
     try {
       const data = await getAdminUsers();
-      setUsers(data);
+      const normalizedUsers = Array.isArray(data) ? data : [];
       const roleMap = {};
-      data.forEach((user) => {
+      normalizedUsers.forEach((user) => {
         roleMap[user.id] = user.role;
       });
+      if (!isMountedRef.current) {
+        return;
+      }
+      setUsers(normalizedUsers);
       setSelectedRole(roleMap);
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to load users.");
+      if (isMountedRef.current) {
+        setError(getErrorMessage(err, "Failed to load users."));
+      }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
-  }
+  }, [getErrorMessage]);
 
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [loadUsers]);
 
   const totalUsers = useMemo(() => users.length, [users]);
   const totalAdmins = useMemo(
@@ -50,28 +66,77 @@ export default function AdminDashboard() {
   );
 
   async function handleRoleUpdate(userId) {
+    if (activeUserId) {
+      return;
+    }
     const role = selectedRole[userId];
+    setActiveUserId(userId);
+    setError("");
     try {
       const updatedUser = await updateAdminUserRole(userId, role);
-      setUsers((prev) => prev.map((user) => (user.id === userId ? updatedUser : user)));
+      if (isMountedRef.current) {
+        setUsers((prev) => prev.map((user) => (user.id === userId ? updatedUser : user)));
+      }
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to update role.");
+      if (isMountedRef.current) {
+        setError(getErrorMessage(err, "Failed to update role."));
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setActiveUserId(null);
+      }
     }
   }
 
   async function handleFlagUpdate(userId, payload) {
+    if (activeUserId) {
+      return;
+    }
+    setActiveUserId(userId);
+    setError("");
     try {
       const updatedUser = await updateAdminUserFlags(userId, payload);
-      setUsers((prev) => prev.map((user) => (user.id === userId ? updatedUser : user)));
+      if (isMountedRef.current) {
+        setUsers((prev) => prev.map((user) => (user.id === userId ? updatedUser : user)));
+      }
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to update user.");
+      if (isMountedRef.current) {
+        setError(getErrorMessage(err, "Failed to update user."));
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setActiveUserId(null);
+      }
     }
   }
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return undefined;
+    }
+
+    const handleEsc = (event) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleEsc);
+    return () => {
+      window.removeEventListener("keydown", handleEsc);
     };
   }, [menuOpen]);
 
@@ -108,6 +173,8 @@ export default function AdminDashboard() {
             type="button"
             className="admin-ui-menu-btn"
             aria-label="Open menu"
+            aria-controls="admin-mobile-menu"
+            aria-expanded={menuOpen}
             onClick={() => setMenuOpen(true)}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -116,7 +183,15 @@ export default function AdminDashboard() {
           </button>
         </header>
 
-        <aside className={`admin-ui-mobile-menu ${menuOpen ? "is-open" : ""}`}>
+        <aside
+          id="admin-mobile-menu"
+          className={`admin-ui-mobile-menu ${menuOpen ? "is-open" : ""}`}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setMenuOpen(false);
+            }
+          }}
+        >
           <button
             type="button"
             className="admin-ui-close-btn"
@@ -180,7 +255,7 @@ export default function AdminDashboard() {
           <section className="admin-ui-panel">
             <div className="admin-ui-panel-head">
               <h2>User Directory</h2>
-              <button type="button" onClick={loadUsers} className="admin-ui-refresh-btn">
+              <button type="button" onClick={loadUsers} className="admin-ui-refresh-btn" disabled={isLoading}>
                 Refresh users
               </button>
             </div>
@@ -206,6 +281,13 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
+                    {users.length === 0 && (
+                      <tr>
+                        <td colSpan="5">
+                          <p className="admin-ui-empty">No users found.</p>
+                        </td>
+                      </tr>
+                    )}
                     {users.map((user) => (
                       <tr key={user.id}>
                         <td>
@@ -236,12 +318,20 @@ export default function AdminDashboard() {
                         </td>
                         <td>
                           <div className="admin-ui-actions-row">
-                            <button type="button" className="admin-ui-action-btn save" onClick={() => handleRoleUpdate(user.id)}>
+                            <button
+                              type="button"
+                              className="admin-ui-action-btn save"
+                              disabled={
+                                Boolean(activeUserId) || (selectedRole[user.id] || user.role) === user.role
+                              }
+                              onClick={() => handleRoleUpdate(user.id)}
+                            >
                               Save
                             </button>
                             <button
                               type="button"
                               className="admin-ui-action-btn warn"
+                              disabled={Boolean(activeUserId)}
                               onClick={() => handleFlagUpdate(user.id, { isVerified: !user.isVerified })}
                             >
                               {user.isVerified ? "Unverify" : "Verify"}
@@ -249,6 +339,7 @@ export default function AdminDashboard() {
                             <button
                               type="button"
                               className="admin-ui-action-btn danger"
+                              disabled={Boolean(activeUserId)}
                               onClick={() => handleFlagUpdate(user.id, { isActive: !user.isActive })}
                             >
                               {user.isActive ? "Deactivate" : "Activate"}

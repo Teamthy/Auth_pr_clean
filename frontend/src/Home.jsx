@@ -15,11 +15,29 @@ export default function Home() {
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const dashboardRoute = user?.role === "admin" ? "/admin" : "/dashboard";
+  const ctaRoute = user ? dashboardRoute : "/register";
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return undefined;
+    }
+
+    const handleEsc = (event) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleEsc);
+    return () => {
+      window.removeEventListener("keydown", handleEsc);
     };
   }, [menuOpen]);
 
@@ -56,6 +74,8 @@ export default function Home() {
             type="button"
             className="landing-menu-btn"
             aria-label="Open menu"
+            aria-controls="landing-mobile-menu"
+            aria-expanded={menuOpen}
             onClick={() => setMenuOpen(true)}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -64,7 +84,15 @@ export default function Home() {
           </button>
         </header>
 
-        <aside className={`landing-mobile-menu ${menuOpen ? "is-open" : ""}`}>
+        <aside
+          id="landing-mobile-menu"
+          className={`landing-mobile-menu ${menuOpen ? "is-open" : ""}`}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setMenuOpen(false);
+            }
+          }}
+        >
           <button
             type="button"
             className="landing-close-btn"
@@ -126,7 +154,7 @@ export default function Home() {
             </p>
 
             <div className="landing-cta-row">
-              <Link to={dashboardRoute} className="landing-cta landing-cta--primary">
+              <Link to={ctaRoute} className="landing-cta landing-cta--primary">
                 <span>Read Success Stories</span>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                   <path
@@ -138,7 +166,7 @@ export default function Home() {
                   />
                 </svg>
               </Link>
-              <Link to={dashboardRoute} className="landing-cta landing-cta--secondary">
+              <Link to={ctaRoute} className="landing-cta landing-cta--secondary">
                 Get Started
               </Link>
             </div>

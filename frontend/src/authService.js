@@ -47,7 +47,7 @@ export async function getProfile() {
 
 export async function getAdminUsers() {
   const { data } = await api.get("/admin/users");
-  return data.users;
+  return Array.isArray(data?.users) ? data.users : [];
 }
 
 export async function updateAdminUserRole(userId, role) {
