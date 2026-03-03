@@ -3,6 +3,7 @@ import { useGoogleLogin } from "@react-oauth/google";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./context/useAuth";
 import AuthPageWrapper from "./AuthPageWrapper";
+import { getGoogleClientId } from "./googleAuthConfig";
 import { validators } from "./validators";
 
 export default function Login() {
@@ -15,7 +16,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const hasGoogleClientId = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+  const hasGoogleClientId = Boolean(getGoogleClientId());
 
   const signInWithGoogle = useGoogleLogin({
     flow: "implicit",
@@ -40,7 +41,7 @@ export default function Login() {
 
   function handleGoogleSignIn() {
     if (!hasGoogleClientId) {
-      setError("Google auth is not configured. Add VITE_GOOGLE_CLIENT_ID to frontend/.env and restart.");
+      setError("Google auth is not configured. Set VITE_GOOGLE_CLIENT_ID (frontend) or GOOGLE_CLIENT_ID (backend) and restart.");
       return;
     }
 
@@ -102,7 +103,7 @@ export default function Login() {
           title={
             hasGoogleClientId
               ? "Continue with Google"
-              : "Set VITE_GOOGLE_CLIENT_ID in frontend/.env to enable Google Auth"
+              : "Set VITE_GOOGLE_CLIENT_ID (frontend) or GOOGLE_CLIENT_ID (backend)"
           }
         >
           <img
@@ -112,7 +113,7 @@ export default function Login() {
         </button>
         {!hasGoogleClientId && (
           <p className="auth-note">
-            Google auth is unavailable until `VITE_GOOGLE_CLIENT_ID` is set.
+            Google auth is unavailable until a Google client id is configured.
           </p>
         )}
 

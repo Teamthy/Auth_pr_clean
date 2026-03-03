@@ -2,9 +2,9 @@
 import jwt from "jsonwebtoken";
 import { db } from "../config/db.js";
 import { refreshTokens } from "../config/refreshTokenSchema.js";
-import { users } from "../config/usersSchema.js";
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
+import { findUserById } from "./userCompat.service.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "15m";
@@ -65,7 +65,7 @@ export async function refreshAccessToken(oldRefreshToken) {
   // Delete old refresh token (rotation)
   await db.delete(refreshTokens).where(eq(refreshTokens.token, oldRefreshToken));
 
-  const [user] = await db.select().from(users).where(eq(users.id, stored.userId)).limit(1);
+  const user = await findUserById(stored.userId);
   if (!user || !user.isActive) {
     const err = new Error("User account is not active");
     err.status = 403;

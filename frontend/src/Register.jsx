@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "./context/useAuth";
 import AuthPageWrapper from "./AuthPageWrapper";
 import PasswordSecurityChecks from "./PasswordSecurityChecks";
+import { getGoogleClientId } from "./googleAuthConfig";
 import { validators } from "./validators";
 
 export default function Register() {
@@ -18,7 +19,18 @@ export default function Register() {
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const hasGoogleClientId = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+  const hasGoogleClientId = Boolean(getGoogleClientId());
+
+  function resolveErrorMessage(err, fallbackMessage) {
+    const validationMessage = err.response?.data?.errors?.[0]?.msg;
+    if (validationMessage) {
+      return validationMessage;
+    }
+    if (err.code === "ERR_NETWORK") {
+      return "Cannot reach server. Ensure backend is running and database is reachable.";
+    }
+    return err.response?.data?.error || err.message || fallbackMessage;
+  }
 
   const signUpWithGoogle = useGoogleLogin({
     flow: "implicit",
@@ -41,7 +53,7 @@ export default function Register() {
 
   function handleGoogleSignUp() {
     if (!hasGoogleClientId) {
-      setError("Google auth is not configured. Add VITE_GOOGLE_CLIENT_ID to frontend/.env and restart.");
+      setError("Google auth is not configured. Set VITE_GOOGLE_CLIENT_ID (frontend) or GOOGLE_CLIENT_ID (backend) and restart.");
       return;
     }
 
@@ -78,7 +90,7 @@ export default function Register() {
       await register({ fullName, email, password });
       navigate(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
-      const message = err.response?.data?.error || "Registration failed.";
+      const message = resolveErrorMessage(err, "Registration failed.");
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -102,7 +114,7 @@ export default function Register() {
           title={
             hasGoogleClientId
               ? "Continue with Google"
-              : "Set VITE_GOOGLE_CLIENT_ID in frontend/.env to enable Google Auth"
+              : "Set VITE_GOOGLE_CLIENT_ID (frontend) or GOOGLE_CLIENT_ID (backend)"
           }
         >
           <img
@@ -112,7 +124,7 @@ export default function Register() {
         </button>
         {!hasGoogleClientId && (
           <p className="auth-note">
-            Google auth is unavailable until `VITE_GOOGLE_CLIENT_ID` is set.
+            Google auth is unavailable until a Google client id is configured.
           </p>
         )}
 

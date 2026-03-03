@@ -1,6 +1,5 @@
 import bcrypt from "bcryptjs";
 import { db } from "../config/db.js";
-import { users } from "../config/usersSchema.js";
 import { emailVerificationCodes } from "../config/emailVerificationSchema.js";
 import { and, desc, eq, gt } from "drizzle-orm";
 import { issueTokens } from "./token.service.js";
@@ -8,6 +7,13 @@ import { sendEmail } from "../config/sendgrid.js";
 import { refreshTokens } from "../config/refreshTokenSchema.js";
 import { resetTokens } from "../config/resetTokensSchema.js"; 
 import { randomInt, randomUUID } from "crypto";
+import {
+  createUser,
+  findUserByEmail,
+  findUserById,
+  listUsersCompat,
+  updateUserById,
+} from "./userCompat.service.js";
 
 
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
@@ -63,8 +69,8 @@ export async function register({ email, password, fullName }) {
     throw err;
   }
 
-  const existing = await db.select().from(users).where(eq(users.email, normalized));
-  if (existing.length > 0) {
+  const existing = await findUserByEmail(normalized);
+  if (existing) {
     const err = new Error("Email already in use");
     err.status = 409;
     throw err;
@@ -72,17 +78,14 @@ export async function register({ email, password, fullName }) {
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
-  const [inserted] = await db
-    .insert(users)
-    .values({
-      fullName: sanitizedFullName,
-      email: normalized,
-      passwordHash,
-      role: "user",
-      isVerified: false,
-      isActive: true,
-    })
-    .returning();
+  const inserted = await createUser({
+    fullName: sanitizedFullName,
+    email: normalized,
+    passwordHash,
+    role: "user",
+    isVerified: false,
+    isActive: true,
+  });
 
   await createAndSendVerificationCode(inserted);
   return { user: publicUser(inserted), requiresVerification: true };
@@ -139,7 +142,7 @@ export async function loginWithGoogleAccessToken(accessToken) {
 
   const normalized = profile.email.trim().toLowerCase();
   const fullName = profile.name?.trim() || null;
-  const [existing] = await db.select().from(users).where(eq(users.email, normalized)).limit(1);
+  const existing = await findUserByEmail(normalized);
 
   if (existing) {
     if (!existing.isActive) {
@@ -148,7 +151,7 @@ export async function loginWithGoogleAccessToken(accessToken) {
       throw err;
     }
 
-    const updateData = { updatedAt: new Date() };
+    const updateData = {};
     if (!existing.isVerified) {
       updateData.isVerified = true;
     }
@@ -157,13 +160,8 @@ export async function loginWithGoogleAccessToken(accessToken) {
     }
 
     let user = existing;
-    if (Object.keys(updateData).length > 1) {
-      const [updated] = await db
-        .update(users)
-        .set(updateData)
-        .where(eq(users.id, existing.id))
-        .returning();
-      user = updated;
+    if (Object.keys(updateData).length > 0) {
+      user = await updateUserById(existing.id, updateData);
     }
 
     const { accessToken: newAccessToken, refreshToken } = await issueTokens(user);
@@ -171,17 +169,14 @@ export async function loginWithGoogleAccessToken(accessToken) {
   }
 
   const passwordHash = await bcrypt.hash(randomUUID(), SALT_ROUNDS);
-  const [inserted] = await db
-    .insert(users)
-    .values({
-      fullName,
-      email: normalized,
-      passwordHash,
-      role: "user",
-      isVerified: true,
-      isActive: true,
-    })
-    .returning();
+  const inserted = await createUser({
+    fullName,
+    email: normalized,
+    passwordHash,
+    role: "user",
+    isVerified: true,
+    isActive: true,
+  });
 
   const { accessToken: newAccessToken, refreshToken } = await issueTokens(inserted);
   return { user: publicUser(inserted), accessToken: newAccessToken, refreshToken };
@@ -190,14 +185,16 @@ export async function loginWithGoogleAccessToken(accessToken) {
 // LOGIN
 export async function login({ email, password }) {
   const normalized = email.trim().toLowerCase();
-  const [user] = await db.select().from(users).where(eq(users.email, normalized));
+  const user = await findUserByEmail(normalized);
   if (!user) {
     const err = new Error("Invalid credentials");
     err.status = 401;
     throw err;
   }
 
-  const match = await bcrypt.compare(password, user.passwordHash);
+  const match = user.passwordHash
+    ? await bcrypt.compare(password, user.passwordHash)
+    : false;
   if (!match) {
     const err = new Error("Invalid credentials");
     err.status = 401;
@@ -224,7 +221,7 @@ export async function login({ email, password }) {
 // RESEND VERIFICATION
 export async function resendVerificationEmail(email) {
   const normalized = email.trim().toLowerCase();
-  const [user] = await db.select().from(users).where(eq(users.email, normalized));
+  const user = await findUserByEmail(normalized);
 
   if (!user) {
     return { message: "If the account exists, a verification code has been sent." };
@@ -240,7 +237,7 @@ export async function resendVerificationEmail(email) {
 
 export async function verifyEmailCode({ email, code }) {
   const normalized = email.trim().toLowerCase();
-  const [user] = await db.select().from(users).where(eq(users.email, normalized));
+  const user = await findUserByEmail(normalized);
   if (!user) {
     const err = new Error("Invalid email or code");
     err.status = 400;
@@ -276,13 +273,8 @@ export async function verifyEmailCode({ email, code }) {
     throw err;
   }
 
-  await db.transaction(async (tx) => {
-    await tx
-      .update(users)
-      .set({ isVerified: true, updatedAt: new Date() })
-      .where(eq(users.id, user.id));
-    await tx.delete(emailVerificationCodes).where(eq(emailVerificationCodes.userId, user.id));
-  });
+  await updateUserById(user.id, { isVerified: true });
+  await db.delete(emailVerificationCodes).where(eq(emailVerificationCodes.userId, user.id));
 
   return { message: "Email verified successfully." };
 }
@@ -298,14 +290,9 @@ export async function resetPassword(token, newPassword) {
 
   const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
-  await db.transaction(async (tx) => {
-    await tx
-      .update(users)
-      .set({ passwordHash, updatedAt: new Date() })
-      .where(eq(users.id, stored.userId));
-    await tx.delete(resetTokens).where(eq(resetTokens.userId, stored.userId));
-    await tx.delete(refreshTokens).where(eq(refreshTokens.userId, stored.userId));
-  });
+  await updateUserById(stored.userId, { passwordHash });
+  await db.delete(resetTokens).where(eq(resetTokens.userId, stored.userId));
+  await db.delete(refreshTokens).where(eq(refreshTokens.userId, stored.userId));
 
   return { message: "Password reset successful" };
 }
@@ -313,7 +300,7 @@ export async function resetPassword(token, newPassword) {
 // Request password reset
 export async function requestPasswordReset(email) {
   const normalized = email.trim().toLowerCase();
-  const [user] = await db.select().from(users).where(eq(users.email, normalized));
+  const user = await findUserByEmail(normalized);
 
   if (!user) {
     return {
@@ -349,7 +336,7 @@ export async function logout(userId) {
 }
 
 export async function getProfile(userId) {
-  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  const user = await findUserById(userId);
   if (!user) {
     const err = new Error("User not found");
     err.status = 404;
@@ -359,19 +346,7 @@ export async function getProfile(userId) {
 }
 
 export async function listUsers() {
-  return db
-    .select({
-      id: users.id,
-      fullName: users.fullName,
-      email: users.email,
-      role: users.role,
-      isVerified: users.isVerified,
-      isActive: users.isActive,
-      createdAt: users.createdAt,
-      updatedAt: users.updatedAt,
-    })
-    .from(users)
-    .orderBy(desc(users.createdAt));
+  return listUsersCompat();
 }
 
 export async function updateUserRole(userId, role) {
@@ -382,11 +357,7 @@ export async function updateUserRole(userId, role) {
     throw err;
   }
 
-  const [updated] = await db
-    .update(users)
-    .set({ role, updatedAt: new Date() })
-    .where(eq(users.id, userId))
-    .returning();
+  const updated = await updateUserById(userId, { role });
 
   if (!updated) {
     const err = new Error("User not found");
@@ -398,7 +369,7 @@ export async function updateUserRole(userId, role) {
 }
 
 export async function updateUserFlags(userId, { isActive, isVerified }) {
-  const updateData = { updatedAt: new Date() };
+  const updateData = {};
   if (typeof isActive === "boolean") {
     updateData.isActive = isActive;
   }
@@ -406,17 +377,13 @@ export async function updateUserFlags(userId, { isActive, isVerified }) {
     updateData.isVerified = isVerified;
   }
 
-  if (Object.keys(updateData).length === 1) {
+  if (Object.keys(updateData).length === 0) {
     const err = new Error("No updatable fields provided");
     err.status = 400;
     throw err;
   }
 
-  const [updated] = await db
-    .update(users)
-    .set(updateData)
-    .where(eq(users.id, userId))
-    .returning();
+  const updated = await updateUserById(userId, updateData);
 
   if (!updated) {
     const err = new Error("User not found");

@@ -15,7 +15,10 @@ if (missingEnv.length > 0) {
 }
 
 const PORT = process.env.PORT || 5000;
-await ensureDatabaseCompatibility();
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// Run compatibility checks in the background so startup is not blocked by
+// transient database network timeouts.
+ensureDatabaseCompatibility();
