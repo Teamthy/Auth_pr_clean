@@ -42,19 +42,23 @@ export default function VerifyEmail() {
   }
 
   return (
-    <section className="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-      <h1 className="text-2xl font-semibold text-slate-900">Verify your email</h1>
-      <p className="mt-2 text-sm text-slate-600">
-        Enter the 6-digit code sent to your email address.
+    <section className="mx-auto max-w-xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm md:p-10">
+      <p className="inline-flex rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-800">
+        Email Verification
       </p>
-      <form onSubmit={handleVerify} className="mt-6 grid gap-4">
+      <h1 className="mt-4 text-3xl font-semibold text-slate-900">Verify Your Email</h1>
+      <p className="mt-2 text-sm text-slate-600">
+        Enter the 6-digit code sent to your inbox and activate your account.
+      </p>
+
+      <form onSubmit={handleVerify} className="mt-7 grid gap-4">
         <label className="grid gap-1 text-sm font-medium text-slate-700">
           Email
           <input
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-2 outline-none ring-cyan-300 focus:ring"
+            className="rounded-xl border border-slate-300 px-3 py-2.5 outline-none ring-cyan-300 focus:ring"
             required
           />
         </label>
@@ -64,29 +68,31 @@ export default function VerifyEmail() {
             type="text"
             value={code}
             onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
-            className="rounded-md border border-slate-300 px-3 py-2 tracking-[0.35em] outline-none ring-cyan-300 focus:ring"
+            className="rounded-xl border border-slate-300 px-3 py-2.5 tracking-[0.35em] outline-none ring-cyan-300 focus:ring"
             required
           />
         </label>
         <button
           type="submit"
           disabled={!canSubmit || isSubmitting}
-          className="rounded-md bg-slate-900 px-4 py-2 font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="rounded-full bg-slate-900 px-4 py-2.5 font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-400"
         >
-          {isSubmitting ? "Verifying..." : "Verify email"}
+          {isSubmitting ? "Verifying..." : "Verify Email"}
         </button>
       </form>
 
       <button
         type="button"
         onClick={handleResend}
-        className="mt-3 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        className="mt-3 rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
       >
         Resend code
       </button>
 
-      {message && <p className="mt-4 rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{message}</p>}
-      {error && <p className="mt-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
+      {message && (
+        <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">{message}</p>
+      )}
+      {error && <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
 
       <p className="mt-4 text-sm text-slate-600">
         Already verified?{" "}

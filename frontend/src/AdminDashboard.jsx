@@ -60,24 +60,31 @@ export default function AdminDashboard() {
 
   return (
     <section className="grid gap-6">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Total users</p>
-          <p className="text-3xl font-semibold text-slate-900">{totalUsers}</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Total Users</p>
+          <p className="mt-2 text-3xl font-semibold text-slate-900">{totalUsers}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Admin accounts</p>
-          <p className="text-3xl font-semibold text-slate-900">{totalAdmins}</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Admin Accounts</p>
+          <p className="mt-2 text-3xl font-semibold text-slate-900">{totalAdmins}</p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs uppercase tracking-wide text-slate-500">Standard Users</p>
+          <p className="mt-2 text-3xl font-semibold text-slate-900">{totalUsers - totalAdmins}</p>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-slate-900">Admin dashboard</h1>
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-900">Admin Dashboard</h1>
+            <p className="text-sm text-slate-500">Manage users, roles, and account state.</p>
+          </div>
           <button
             type="button"
             onClick={loadUsers}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             Refresh
           </button>
@@ -87,44 +94,62 @@ export default function AdminDashboard() {
         {error && <p className="mb-3 rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
 
         {!isLoading && (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200">
+            <table className="min-w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
-                  <th className="px-3 py-2">User</th>
-                  <th className="px-3 py-2">Role</th>
-                  <th className="px-3 py-2">Verified</th>
-                  <th className="px-3 py-2">Active</th>
-                  <th className="px-3 py-2">Actions</th>
+                <tr className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3">User</th>
+                  <th className="px-4 py-3">Role</th>
+                  <th className="px-4 py-3">Verified</th>
+                  <th className="px-4 py-3">Active</th>
+                  <th className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {users.map((user) => (
-                  <tr key={user.id}>
-                    <td className="px-3 py-3">
+                  <tr key={user.id} className="bg-white hover:bg-slate-50/60">
+                    <td className="px-4 py-4">
                       <p className="font-medium text-slate-900">{user.fullName || "No name"}</p>
                       <p className="text-xs text-slate-500">{user.email}</p>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-4 py-4">
                       <select
                         value={selectedRole[user.id] || user.role}
                         onChange={(event) =>
                           setSelectedRole((prev) => ({ ...prev, [user.id]: event.target.value }))
                         }
-                        className="rounded-md border border-slate-300 px-2 py-1"
+                        className="rounded-full border border-slate-300 px-3 py-1.5"
                       >
                         <option value="user">user</option>
                         <option value="admin">admin</option>
                       </select>
                     </td>
-                    <td className="px-3 py-3">{user.isVerified ? "Yes" : "No"}</td>
-                    <td className="px-3 py-3">{user.isActive ? "Yes" : "No"}</td>
-                    <td className="px-3 py-3">
+                    <td className="px-4 py-4">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                          user.isVerified
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {user.isVerified ? "Verified" : "Pending"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                          user.isActive ? "bg-cyan-100 text-cyan-700" : "bg-rose-100 text-rose-700"
+                        }`}
+                      >
+                        {user.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
                           onClick={() => handleRoleUpdate(user.id)}
-                          className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium hover:bg-slate-50"
+                          className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
                         >
                           Save role
                         </button>
@@ -133,14 +158,14 @@ export default function AdminDashboard() {
                           onClick={() =>
                             handleFlagUpdate(user.id, { isVerified: !user.isVerified })
                           }
-                          className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium hover:bg-slate-50"
+                          className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
                         >
                           Toggle verify
                         </button>
                         <button
                           type="button"
                           onClick={() => handleFlagUpdate(user.id, { isActive: !user.isActive })}
-                          className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium hover:bg-slate-50"
+                          className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
                         >
                           Toggle active
                         </button>
