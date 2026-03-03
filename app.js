@@ -55,21 +55,30 @@ const strictAuthLimiter = rateLimit({
   message: { error: "Too many attempts from this IP. Please wait before retrying." },
 });
 
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "https:", "data:"],
-      fontSrc: ["'self'"],
-      connectSrc: ["'self'"],
-      frameSrc: ["'none'"],
-      objectSrc: ["'none'"],
-      upgradeInsecureRequests: [],
+app.use(
+  helmet({
+    // OAuth popups require a relaxed opener policy compared to helmet's default.
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        scriptSrc: ["'self'", "https://accounts.google.com"],
+        imgSrc: ["'self'", "https:", "data:"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+        connectSrc: [
+          "'self'",
+          "https://accounts.google.com",
+          "https://oauth2.googleapis.com",
+          "https://www.googleapis.com",
+        ],
+        frameSrc: ["'self'", "https://accounts.google.com"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
     },
-  },
-}));
+  })
+);
 app.use(
   cors({
     origin(origin, callback) {

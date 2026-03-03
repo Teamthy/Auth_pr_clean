@@ -29,7 +29,9 @@ api.interceptors.request.use(async (config) => {
       config.headers["X-CSRF-Token"] = csrfToken;
     } catch (error) {
       console.warn("Could not add CSRF token:", error);
-      // Continue without CSRF token - backend will reject if needed
+      const csrfError = new Error("Unable to obtain CSRF token. Ensure backend is running.");
+      csrfError.code = "CSRF_FETCH_FAILED";
+      throw csrfError;
     }
   }
 

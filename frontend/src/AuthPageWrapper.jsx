@@ -1,5 +1,5 @@
 export default function AuthPageWrapper({
-  imageUrl = "/leftSideImage.png",
+  imageUrl = "/leftSideImage.jpg",
   imageAlt = "leftSideImage",
   compact = false,
   children,

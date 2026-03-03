@@ -18,6 +18,17 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const hasGoogleClientId = Boolean(getGoogleClientId());
 
+  function resolveErrorMessage(err, fallbackMessage) {
+    const validationMessage = err.response?.data?.errors?.[0]?.msg;
+    if (validationMessage) {
+      return validationMessage;
+    }
+    if (err.code === "ERR_NETWORK") {
+      return "Cannot reach server. Ensure backend is running and database is reachable.";
+    }
+    return err.response?.data?.error || err.message || fallbackMessage;
+  }
+
   const signInWithGoogle = useGoogleLogin({
     flow: "implicit",
     scope: "openid email profile",
@@ -77,7 +88,7 @@ export default function Login() {
       const nextRoute = location.state?.from?.pathname || fallbackRoute;
       navigate(nextRoute, { replace: true });
     } catch (err) {
-      const message = err.response?.data?.error || "Login failed.";
+      const message = resolveErrorMessage(err, "Login failed.");
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -85,7 +96,7 @@ export default function Login() {
   }
 
   return (
-    <AuthPageWrapper imageUrl="/leftSideImage.png" imageAlt="leftSideImage">
+    <AuthPageWrapper imageUrl="/leftSideImage.jpg" imageAlt="leftSideImage" compact>
       <form
         onSubmit={handleSubmit}
         className="auth-form"
@@ -107,7 +118,7 @@ export default function Login() {
           }
         >
           <img
-            src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/googleLogo.svg"
+            src="/Google_2015_logo.svg.png"
             alt="googleLogo"
           />
         </button>

@@ -56,7 +56,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <AuthPageWrapper imageUrl="/leftSideImage.png" imageAlt="leftSideImage">
+    <AuthPageWrapper imageUrl="/leftSideImage.jpg" imageAlt="leftSideImage">
       <form
         onSubmit={handleSubmit}
         className="auth-form"

@@ -3,9 +3,14 @@ import dotenv from "dotenv";
 dotenv.config();
 import { Pool } from "pg";
 
+const databaseUrl = process.env.DATABASE_URL || "";
+const dbSslFlag = (process.env.DB_SSL || "").toLowerCase();
+const isLocalDatabaseUrl = /@(localhost|127\.0\.0\.1|::1)(:|\/|$)/i.test(databaseUrl);
+const shouldUseSsl = dbSslFlag === "true" || !(dbSslFlag === "false" || isLocalDatabaseUrl);
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  connectionString: databaseUrl,
+  ssl: shouldUseSsl ? { rejectUnauthorized: false } : false,
 });
 
 (async () => {

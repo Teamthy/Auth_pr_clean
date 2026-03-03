@@ -3,11 +3,36 @@ import { AuthContext } from "./auth-context";
 import * as authService from "../authService";
 import { clearAccessToken, setAccessToken } from "../api";
 
+const devBypassEnabled =
+  import.meta.env.DEV &&
+  String(import.meta.env.VITE_AUTH_BYPASS || "").toLowerCase() === "true";
+const bypassRole = String(import.meta.env.VITE_AUTH_BYPASS_ROLE || "user").toLowerCase();
+
+function createBypassUser() {
+  const role = bypassRole === "admin" ? "admin" : "user";
+  return {
+    id: "dev-bypass-user",
+    fullName: role === "admin" ? "Dev Admin" : "Dev User",
+    email: role === "admin" ? "admin.local@dev.test" : "user.local@dev.test",
+    role,
+    isVerified: true,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!devBypassEnabled);
 
   const syncProfile = useCallback(async () => {
+    if (devBypassEnabled) {
+      setUser(createBypassUser());
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const profile = await authService.getProfile();
       setUser(profile);
@@ -47,6 +72,11 @@ export default function AuthProvider({ children }) {
   const resetPassword = useCallback((payload) => authService.resetPassword(payload), []);
 
   const logout = useCallback(async () => {
+    if (devBypassEnabled) {
+      setUser(createBypassUser());
+      return;
+    }
+
     try {
       await authService.logout();
     } catch {

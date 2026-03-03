@@ -98,7 +98,7 @@ export default function Register() {
   }
 
   return (
-    <AuthPageWrapper imageUrl="/leftSideImage.png" imageAlt="leftSideImage" compact>
+    <AuthPageWrapper imageUrl="/leftSideImage.jpg" imageAlt="leftSideImage" compact>
       <form
         onSubmit={handleSubmit}
         className="auth-form"
@@ -118,7 +118,7 @@ export default function Register() {
           }
         >
           <img
-            src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/googleLogo.svg"
+            src="/Google_2015_logo.svg.png"
             alt="googleLogo"
           />
         </button>

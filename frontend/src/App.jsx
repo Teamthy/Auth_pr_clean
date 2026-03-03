@@ -12,18 +12,16 @@ import { PrivateRoute } from "./PrivateRoute";
 import { RoleRoute } from "./RoleRoute";
 
 function App() {
+  const bypassEnabled = String(import.meta.env.VITE_AUTH_BYPASS || "").toLowerCase() === "true";
+
+  const withPrivate = (element) =>
+    bypassEnabled ? element : <PrivateRoute>{element}</PrivateRoute>;
+
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
-          <Route
-            path="/"
-            element={
-              <PrivateRoute>
-                <Home />
-              </PrivateRoute>
-            }
-          />
+          <Route path="/" element={withPrivate(<Home />)} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
@@ -32,21 +30,21 @@ function App() {
           <Route
             path="/dashboard"
             element={
-              <PrivateRoute>
+              withPrivate(
                 <RoleRoute roles={["user", "admin"]}>
                   <Profile />
                 </RoleRoute>
-              </PrivateRoute>
+              )
             }
           />
           <Route
             path="/admin"
             element={
-              <PrivateRoute>
+              withPrivate(
                 <RoleRoute roles={["admin"]}>
                   <AdminDashboard />
                 </RoleRoute>
-              </PrivateRoute>
+              )
             }
           />
           <Route path="*" element={<Navigate to="/" replace />} />

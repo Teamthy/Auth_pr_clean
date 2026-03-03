@@ -6,6 +6,22 @@ import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "./schema.js";
 
+const databaseUrl = process.env.DATABASE_URL || "";
+const dbSslFlag = (process.env.DB_SSL || "").toLowerCase();
+const sslModeMatch = /[?&]sslmode=([^&]+)/i.exec(databaseUrl);
+const sslMode = sslModeMatch?.[1]?.toLowerCase() || "";
+const isLocalDatabaseUrl =
+  /@(localhost|127\.0\.0\.1|::1)(:|\/|$)/i.test(databaseUrl) ||
+  /@host(:|\/|$)/i.test(databaseUrl);
+const shouldUseSsl =
+  dbSslFlag === "true" ||
+  !(
+    dbSslFlag === "false" ||
+    sslMode === "disable" ||
+    sslMode === "allow" ||
+    isLocalDatabaseUrl
+  );
+
 const pool = new Pool({
   host: process.env.DB_HOST || undefined,
   port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
@@ -13,8 +29,8 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD || undefined,
   database: process.env.DB_NAME || undefined,
   // fallback to connectionString if you prefer
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  connectionString: databaseUrl || undefined,
+  ssl: shouldUseSsl ? { rejectUnauthorized: false } : false,
   max: 10,                    // max clients in pool 
   idleTimeoutMillis: 30000,   // close idle clients after 30s
   connectionTimeoutMillis: 20000, // 20s connect timeout

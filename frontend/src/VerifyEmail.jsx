@@ -13,8 +13,21 @@ export default function VerifyEmail() {
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const canSubmit = email.trim() && code.trim().length === 6;
+  const canResend = Boolean(email.trim()) && !validators.email(email);
+
+  function resolveErrorMessage(err, fallbackMessage) {
+    const validationMessage = err.response?.data?.errors?.[0]?.msg;
+    if (validationMessage) {
+      return validationMessage;
+    }
+    if (err.code === "ERR_NETWORK" || err.code === "CSRF_FETCH_FAILED") {
+      return "Cannot reach server. Ensure backend is running and try again.";
+    }
+    return err.response?.data?.error || err.message || fallbackMessage;
+  }
 
   function validateForm() {
     const errors = {};
@@ -52,17 +65,28 @@ export default function VerifyEmail() {
   async function handleResend() {
     setError("");
     setMessage("");
+    setValidationErrors((current) => ({ ...current, email: undefined }));
+
+    const emailError = validators.email(email);
+    if (emailError) {
+      setValidationErrors((current) => ({ ...current, email: emailError }));
+      return;
+    }
+
+    setIsResending(true);
 
     try {
       const result = await resendVerification({ email });
       setMessage(result.message || "Verification code sent.");
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to resend verification code.");
+      setError(resolveErrorMessage(err, "Failed to resend verification code."));
+    } finally {
+      setIsResending(false);
     }
   }
 
   return (
-    <AuthPageWrapper imageUrl="/leftSideImage.png" imageAlt="leftSideImage">
+    <AuthPageWrapper imageUrl="/leftSideImage.jpg" imageAlt="leftSideImage">
       <form
         onSubmit={handleVerify}
         className="auth-form"
@@ -126,9 +150,10 @@ export default function VerifyEmail() {
         <button
           type="button"
           onClick={handleResend}
-          className="mt-3 underline-link"
+          disabled={isResending || isSubmitting || !canResend}
+          className="btn-resend"
         >
-          Resend code
+          {isResending ? "Sending..." : "Resend code"}
         </button>
 
         {message && (

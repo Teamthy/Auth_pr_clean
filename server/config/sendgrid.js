@@ -1,8 +1,13 @@
 import sgMail from "@sendgrid/mail";
 
-const hasSendgridApiKey = Boolean(process.env.SENDGRID_API_KEY);
+const sendgridApiKey = process.env.SENDGRID_API_KEY?.trim() || "";
+const hasSendgridApiKey =
+  Boolean(sendgridApiKey) &&
+  sendgridApiKey.startsWith("SG.") &&
+  !sendgridApiKey.includes("xxxxx") &&
+  sendgridApiKey.length > 20;
 if (hasSendgridApiKey) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  sgMail.setApiKey(sendgridApiKey);
 }
 
 export async function sendEmail({ to, subject, text, html }) {
