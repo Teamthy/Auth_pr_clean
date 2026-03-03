@@ -18,7 +18,7 @@ Use this checklist before deploying to production.
 ## 🗄️ Database Setup
 
 - [ ] **DATABASE_URL** - Configured with SSL requirement
-- [ ] **Run migrations:** `npm run drizzle:migrate`
+- [ ] **Run migrations:** `npm run db:migrate`
 - [ ] **Backup before migration** - Save database state
 - [ ] **Verify connection** - Test database access from production server
 - [ ] **Enable backups** - Automated daily backups configured
@@ -54,7 +54,7 @@ Use this checklist before deploying to production.
 - [ ] Code pushed to production repository
 - [ ] Dependencies installed: `npm ci --only=production`
 - [ ] Environment variables set in .env
-- [ ] Database migrations run: `npm run drizzle:migrate`
+- [ ] Database migrations run: `npm run db:migrate`
 - [ ] Server starts without errors: `npm start`
 - [ ] Health check responds: `curl https://api.yourdomain.com/api/health`
 
