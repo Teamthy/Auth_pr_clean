@@ -98,7 +98,7 @@ export default function Register() {
   }
 
   return (
-    <AuthPageWrapper imageUrl="/leftSideImage.png" imageAlt="leftSideImage">
+    <AuthPageWrapper imageUrl="/leftSideImage.png" imageAlt="leftSideImage" compact>
       <form
         onSubmit={handleSubmit}
         className="auth-form"

@@ -1,12 +1,16 @@
 export default function AuthPageWrapper({
   imageUrl = "/leftSideImage.png",
   imageAlt = "leftSideImage",
+  compact = false,
   children,
 }) {
+  const frameClassName = compact ? "auth-frame auth-frame--compact" : "auth-frame";
+  const pageClassName = compact ? "auth-page auth-page--compact" : "auth-page";
+
   return (
     <div className="auth-shell">
-      <div className="auth-frame">
-        <div className="auth-page">
+      <div className={frameClassName}>
+        <div className={pageClassName}>
           <div className="left-column">
             <img src={imageUrl} alt={imageAlt} />
           </div>
