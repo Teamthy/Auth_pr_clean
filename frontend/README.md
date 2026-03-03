@@ -11,6 +11,19 @@ Currently, two official plugins are available:
 
 The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
+## Tailwind CSS
+
+This project is already configured to use Tailwind CSS. Styles are imported from `src/index.css` which contains the
+`@tailwind base;
+@tailwind components;
+@tailwind utilities;`
+
+Configuration files `tailwind.config.js` and `postcss.config.js` live at the project root. The `content` paths include
+all JSX/TSX files under `src` so that Tailwind can purge unused styles in production. To rebuild just the CSS you can
+run `npm run build:css`, but the regular `dev` and `build` scripts handle it automatically via Vite and PostCSS.
+
+Continue with normal development, using utility classes throughout your components.
+
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
