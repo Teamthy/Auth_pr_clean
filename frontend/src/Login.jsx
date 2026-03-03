@@ -1,25 +1,67 @@
 import { useState } from "react";
+import { useGoogleLogin } from "@react-oauth/google";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./context/useAuth";
 import AuthPageWrapper from "./AuthPageWrapper";
+import { validators } from "./validators";
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const hasGoogleClientId = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+
+  const signInWithGoogle = useGoogleLogin({
+    flow: "implicit",
+    scope: "openid email profile",
+    onSuccess: async (tokenResponse) => {
+      try {
+        if (!tokenResponse?.access_token) {
+          setError("Google authentication failed.");
+          return;
+        }
+        const user = await googleLogin(tokenResponse.access_token);
+        const fallbackRoute = user.role === "admin" ? "/admin" : "/";
+        const nextRoute = location.state?.from?.pathname || fallbackRoute;
+        navigate(nextRoute, { replace: true });
+      } catch (err) {
+        const message = err.response?.data?.error || "Google sign-in failed.";
+        setError(message);
+      }
+    },
+    onError: () => setError("Google sign-in failed."),
+  });
+
+  function validateForm() {
+    const errors = {};
+    const emailError = validators.email(email);
+    const passwordError = password ? null : "Password is required";
+
+    if (emailError) errors.email = emailError;
+    if (passwordError) errors.password = passwordError;
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
+
+    if (!validateForm()) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const user = await login({ email, password });
-      const fallbackRoute = user.role === "admin" ? "/admin" : "/dashboard";
+      const fallbackRoute = user.role === "admin" ? "/admin" : "/";
       const nextRoute = location.state?.from?.pathname || fallbackRoute;
       navigate(nextRoute, { replace: true });
     } catch (err) {
@@ -44,6 +86,13 @@ export default function Login() {
         <button
           type="button"
           className="social-btn"
+          onClick={() => hasGoogleClientId && signInWithGoogle()}
+          disabled={!hasGoogleClientId || isSubmitting}
+          title={
+            hasGoogleClientId
+              ? "Continue with Google"
+              : "Set VITE_GOOGLE_CLIENT_ID in frontend/.env to enable Google Auth"
+          }
         >
           <img
             src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/googleLogo.svg"
@@ -51,10 +100,10 @@ export default function Login() {
           />
         </button>
 
-<div className="divider-row">
-            <div className="divider-line"></div>
-            <p className="divider-text">or sign in with email</p>
-            <div className="divider-line"></div>
+        <div className="divider-row">
+          <div className="divider-line"></div>
+          <p className="divider-text">or sign in with email</p>
+          <div className="divider-line"></div>
         </div>
 
         <div className="input-wrap">
@@ -81,6 +130,9 @@ export default function Login() {
             required
           />
         </div>
+        {validationErrors.email && (
+          <p className="text-sm text-rose-600 mt-1">{validationErrors.email}</p>
+        )}
 
         <div className="mt-6 input-wrap">
           <svg
@@ -104,6 +156,9 @@ export default function Login() {
             required
           />
         </div>
+        {validationErrors.password && (
+          <p className="text-sm text-rose-600 mt-1">{validationErrors.password}</p>
+        )}
 
         <div className="checkbox-row">
           <div className="flex items-center gap-2">
@@ -120,16 +175,14 @@ export default function Login() {
         <button type="submit" disabled={isSubmitting} className="btn-primary btn-primary--indigo">
           {isSubmitting ? "Signing in..." : "Login"}
         </button>
-<p className="footer-text">
-            Don&apos;t have an account?{" "}
-            <Link to="/register" className="footer-link">
+        <p className="footer-text">
+          Don&apos;t have an account?{" "}
+          <Link to="/register" className="footer-link">
             Sign up
           </Link>
         </p>
 
-        {error && (
-          <p className="auth-info auth-info--error">{error}</p>
-        )}
+        {error && <p className="auth-info auth-info--error">{error}</p>}
       </form>
     </AuthPageWrapper>
   );

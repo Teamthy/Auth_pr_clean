@@ -59,115 +59,106 @@ export default function AdminDashboard() {
   }
 
   return (
-    <section className="grid gap-6">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-slate-500">Total Users</p>
-          <p className="mt-2 text-3xl font-semibold text-slate-900">{totalUsers}</p>
+    <div className="page-container">
+      <div className="page-header mb-6">
+        <h1 className="page-title">Admin Dashboard</h1>
+        <p className="page-subtitle">Manage users, roles, and account state.</p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3 mb-6">
+        <div className="stat-card">
+          <p className="stat-card-label">Total Users</p>
+          <p className="stat-card-value">{totalUsers}</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-slate-500">Admin Accounts</p>
-          <p className="mt-2 text-3xl font-semibold text-slate-900">{totalAdmins}</p>
+        <div className="stat-card">
+          <p className="stat-card-label">Admin Accounts</p>
+          <p className="stat-card-value">{totalAdmins}</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-slate-500">Standard Users</p>
-          <p className="mt-2 text-3xl font-semibold text-slate-900">{totalUsers - totalAdmins}</p>
+        <div className="stat-card">
+          <p className="stat-card-label">Standard Users</p>
+          <p className="stat-card-value">{totalUsers - totalAdmins}</p>
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="card">
         <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Admin Dashboard</h1>
-            <p className="text-sm text-slate-500">Manage users, roles, and account state.</p>
-          </div>
           <button
             type="button"
             onClick={loadUsers}
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="btn-sm"
           >
-            Refresh
+            Refresh Users
           </button>
         </div>
 
-        {isLoading && <p className="text-sm text-slate-600">Loading users...</p>}
-        {error && <p className="mb-3 rounded-md bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
+        {isLoading && <p className="loading-text"><span className="spinner mr-2"></span>Loading users...</p>}
+        {error && <p className="auth-info auth-info--error mb-4">{error}</p>}
 
         {!isLoading && (
-          <div className="overflow-x-auto rounded-2xl border border-slate-200">
+          <div className="table-wrapper">
             <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                  <th className="px-4 py-3">User</th>
-                  <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3">Verified</th>
-                  <th className="px-4 py-3">Active</th>
-                  <th className="px-4 py-3">Actions</th>
+              <thead className="table-header">
+                <tr>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th>Verified</th>
+                  <th>Active</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="table-body">
                 {users.map((user) => (
-                  <tr key={user.id} className="bg-white hover:bg-slate-50/60">
-                    <td className="px-4 py-4">
-                      <p className="font-medium text-slate-900">{user.fullName || "No name"}</p>
-                      <p className="text-xs text-slate-500">{user.email}</p>
+                  <tr key={user.id}>
+                    <td>
+                      <p className="table-body-name">{user.fullName || "No name"}</p>
+                      <p className="table-body-email">{user.email}</p>
                     </td>
-                    <td className="px-4 py-4">
+                    <td>
                       <select
                         value={selectedRole[user.id] || user.role}
                         onChange={(event) =>
                           setSelectedRole((prev) => ({ ...prev, [user.id]: event.target.value }))
                         }
-                        className="rounded-full border border-slate-300 px-3 py-1.5"
+                        className="select-custom"
                       >
                         <option value="user">user</option>
                         <option value="admin">admin</option>
                       </select>
                     </td>
-                    <td className="px-4 py-4">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                          user.isVerified
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-amber-100 text-amber-700"
-                        }`}
-                      >
+                    <td>
+                      <span className={`badge ${user.isVerified ? "badge--success" : "badge--warning"}`}>
                         {user.isVerified ? "Verified" : "Pending"}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                          user.isActive ? "bg-cyan-100 text-cyan-700" : "bg-rose-100 text-rose-700"
-                        }`}
-                      >
+                    <td>
+                      <span className={`badge ${user.isActive ? "badge--success" : "badge--danger"}`}>
                         {user.isActive ? "Active" : "Inactive"}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="flex flex-wrap gap-2">
+                    <td>
+                      <div className="btn-group">
                         <button
                           type="button"
                           onClick={() => handleRoleUpdate(user.id)}
-                          className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
+                          className="btn-sm"
                         >
-                          Save role
+                          Save
                         </button>
                         <button
                           type="button"
                           onClick={() =>
                             handleFlagUpdate(user.id, { isVerified: !user.isVerified })
                           }
-                          className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
+                          className="btn-sm"
                         >
-                          Toggle verify
+                          {user.isVerified ? "Unverify" : "Verify"}
                         </button>
                         <button
                           type="button"
                           onClick={() => handleFlagUpdate(user.id, { isActive: !user.isActive })}
-                          className="rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
+                          className="btn-sm"
                         >
-                          Toggle active
+                          {user.isActive ? "Deactivate" : "Activate"}
                         </button>
                       </div>
                     </td>
@@ -178,6 +169,6 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }

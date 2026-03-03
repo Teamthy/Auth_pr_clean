@@ -30,6 +30,13 @@ export default function AuthProvider({ children }) {
     return data.user;
   }, []);
 
+  const googleLogin = useCallback(async (googleAccessToken) => {
+    const data = await authService.googleAuth({ accessToken: googleAccessToken });
+    setAccessToken(data.accessToken);
+    setUser(data.user);
+    return data.user;
+  }, []);
+
   const register = useCallback((payload) => authService.register(payload), []);
   const verifyEmail = useCallback((payload) => authService.verifyEmail(payload), []);
   const resendVerification = useCallback(
@@ -57,6 +64,7 @@ export default function AuthProvider({ children }) {
       isAuthenticated: Boolean(user),
       syncProfile,
       login,
+      googleLogin,
       register,
       verifyEmail,
       resendVerification,
@@ -69,6 +77,7 @@ export default function AuthProvider({ children }) {
       isLoading,
       syncProfile,
       login,
+      googleLogin,
       register,
       verifyEmail,
       resendVerification,

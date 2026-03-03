@@ -86,6 +86,76 @@ export async function register({ email, password, fullName }) {
   return { user: publicUser(inserted), requiresVerification: true };
 }
 
+export async function loginWithGoogleAccessToken(accessToken) {
+  const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    const err = new Error("Google authentication failed");
+    err.status = 401;
+    throw err;
+  }
+
+  const profile = await response.json();
+  if (!profile?.email || profile?.email_verified === false) {
+    const err = new Error("Google account email is not verified");
+    err.status = 400;
+    throw err;
+  }
+
+  const normalized = profile.email.trim().toLowerCase();
+  const fullName = profile.name?.trim() || null;
+  const [existing] = await db.select().from(users).where(eq(users.email, normalized)).limit(1);
+
+  if (existing) {
+    if (!existing.isActive) {
+      const err = new Error("Account is deactivated. Contact support.");
+      err.status = 403;
+      throw err;
+    }
+
+    const updateData = { updatedAt: new Date() };
+    if (!existing.isVerified) {
+      updateData.isVerified = true;
+    }
+    if (!existing.fullName && fullName) {
+      updateData.fullName = fullName;
+    }
+
+    let user = existing;
+    if (Object.keys(updateData).length > 1) {
+      const [updated] = await db
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, existing.id))
+        .returning();
+      user = updated;
+    }
+
+    const { accessToken: newAccessToken, refreshToken } = await issueTokens(user);
+    return { user: publicUser(user), accessToken: newAccessToken, refreshToken };
+  }
+
+  const passwordHash = await bcrypt.hash(randomUUID(), SALT_ROUNDS);
+  const [inserted] = await db
+    .insert(users)
+    .values({
+      fullName,
+      email: normalized,
+      passwordHash,
+      role: "user",
+      isVerified: true,
+      isActive: true,
+    })
+    .returning();
+
+  const { accessToken: newAccessToken, refreshToken } = await issueTokens(inserted);
+  return { user: publicUser(inserted), accessToken: newAccessToken, refreshToken };
+}
+
 // LOGIN
 export async function login({ email, password }) {
   const normalized = email.trim().toLowerCase();

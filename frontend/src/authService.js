@@ -20,6 +20,11 @@ export async function login(payload) {
   return data;
 }
 
+export async function googleAuth(payload) {
+  const { data } = await api.post("/auth/google", payload);
+  return data;
+}
+
 export async function logout() {
   const { data } = await api.post("/auth/logout");
   return data;

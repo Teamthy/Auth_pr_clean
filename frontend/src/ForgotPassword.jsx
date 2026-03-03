@@ -1,18 +1,33 @@
 import { useState } from "react";
 import { useAuth } from "./context/useAuth";
 import AuthPageWrapper from "./AuthPageWrapper";
+import { validators } from "./validators";
 
 export default function ForgotPassword() {
   const { forgotPassword } = useAuth();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  function validateForm() {
+    const errors = {};
+    const emailError = validators.email(email);
+    if (emailError) errors.email = emailError;
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
     setMessage("");
     setError("");
+
+    if (!validateForm()) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -58,6 +73,9 @@ export default function ForgotPassword() {
             required
           />
         </div>
+        {validationErrors.email && (
+          <p className="text-sm text-rose-600 mt-1">{validationErrors.email}</p>
+        )}
 
         <button
           type="submit"

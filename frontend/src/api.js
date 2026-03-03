@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getCSRFToken, clearCSRFToken } from "./csrf.js";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
@@ -15,10 +16,23 @@ export function clearAccessToken() {
   accessToken = null;
 }
 
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
+  // Add access token to Authorization header
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
+
+  // Add CSRF token for state-changing requests
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(config.method?.toUpperCase())) {
+    try {
+      const csrfToken = await getCSRFToken();
+      config.headers["X-CSRF-Token"] = csrfToken;
+    } catch (error) {
+      console.warn("Could not add CSRF token:", error);
+      // Continue without CSRF token - backend will reject if needed
+    }
+  }
+
   return config;
 });
 
@@ -37,7 +51,11 @@ function resolveRefreshQueue(error, token = null) {
 }
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Clear cached CSRF token after successful request to force fresh token
+    clearCSRFToken();
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
     const status = error.response?.status;
@@ -46,6 +64,7 @@ api.interceptors.response.use(
     const isAuthEndpoint = [
       "/auth/login",
       "/auth/register",
+      "/auth/google",
       "/auth/refresh",
       "/auth/logout",
       "/auth/resend-verification",

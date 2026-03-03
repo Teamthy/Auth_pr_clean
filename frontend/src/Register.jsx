@@ -1,29 +1,62 @@
 import { useState } from "react";
+import { useGoogleLogin } from "@react-oauth/google";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "./context/useAuth";
 import AuthPageWrapper from "./AuthPageWrapper";
+import { validators } from "./validators";
 
 export default function Register() {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, googleLogin } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const hasGoogleClientId = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+
+  const signUpWithGoogle = useGoogleLogin({
+    flow: "implicit",
+    scope: "openid email profile",
+    onSuccess: async (tokenResponse) => {
+      try {
+        if (!tokenResponse?.access_token) {
+          setError("Google authentication failed.");
+          return;
+        }
+        const user = await googleLogin(tokenResponse.access_token);
+        navigate(user.role === "admin" ? "/admin" : "/", { replace: true });
+      } catch (err) {
+        const message = err.response?.data?.error || "Google sign-up failed.";
+        setError(message);
+      }
+    },
+    onError: () => setError("Google sign-up failed."),
+  });
+
+  function validateForm() {
+    const errors = {};
+    const fullNameError = validators.fullName(fullName);
+    const emailError = validators.email(email);
+    const passwordError = validators.password(password);
+    const passwordMatchError = validators.passwordMatch(password, confirmPassword);
+
+    if (fullNameError) errors.fullName = fullNameError;
+    if (emailError) errors.email = emailError;
+    if (passwordError) errors.password = passwordError;
+    if (passwordMatchError) errors.confirmPassword = passwordMatchError;
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    if (!validateForm()) {
       return;
     }
 
@@ -51,6 +84,13 @@ export default function Register() {
         <button
           type="button"
           className="social-btn"
+          onClick={() => hasGoogleClientId && signUpWithGoogle()}
+          disabled={!hasGoogleClientId || isSubmitting}
+          title={
+            hasGoogleClientId
+              ? "Continue with Google"
+              : "Set VITE_GOOGLE_CLIENT_ID in frontend/.env to enable Google Auth"
+          }
         >
           <img
             src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/googleLogo.svg"
@@ -79,6 +119,9 @@ export default function Register() {
             className="input-field"
           />
         </div>
+        {validationErrors.fullName && (
+          <p className="text-sm text-rose-600 mt-1">{validationErrors.fullName}</p>
+        )}
 
         <div className="mt-4 input-wrap">
           <svg
@@ -104,6 +147,9 @@ export default function Register() {
             required
           />
         </div>
+        {validationErrors.email && (
+          <p className="text-sm text-rose-600 mt-1">{validationErrors.email}</p>
+        )}
 
         <div className="mt-4 input-wrap">
           <svg
@@ -127,6 +173,9 @@ export default function Register() {
             required
           />
         </div>
+        {validationErrors.password && (
+          <p className="text-sm text-rose-600 mt-1">{validationErrors.password}</p>
+        )}
 
         <div className="mt-4 input-wrap">
           <svg
@@ -150,6 +199,9 @@ export default function Register() {
             required
           />
         </div>
+        {validationErrors.confirmPassword && (
+          <p className="text-sm text-rose-600 mt-1">{validationErrors.confirmPassword}</p>
+        )}
 
         <button
           type="submit"

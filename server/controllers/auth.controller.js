@@ -43,3 +43,26 @@ export async function login(req, res, next) {
     next(err);
   }
 }
+
+export async function googleAuth(req, res, next) {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { accessToken } = req.body;
+    const result = await authService.loginWithGoogleAccessToken(accessToken);
+
+    if (result.refreshToken) {
+      res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, refreshCookieOptions);
+    }
+
+    return res.json({
+      user: result.user,
+      accessToken: result.accessToken,
+    });
+  } catch (err) {
+    next(err);
+  }
+}

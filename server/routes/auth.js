@@ -1,7 +1,7 @@
 // server/routes/auth.js
 import { Router } from "express";
 import { body } from "express-validator";
-import { register, login } from "../controllers/auth.controller.js";
+import { register, login, googleAuth } from "../controllers/auth.controller.js";
 
 const router = Router();
 
@@ -26,6 +26,12 @@ router.post(
     body("password").notEmpty().withMessage("Password is required"),
   ],
   login
+);
+
+router.post(
+  "/google",
+  [body("accessToken").isString().notEmpty().withMessage("Google access token is required")],
+  googleAuth
 );
 
 export default router;

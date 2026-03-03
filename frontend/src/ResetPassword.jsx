@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "./context/useAuth";
 import AuthPageWrapper from "./AuthPageWrapper";
+import { validators } from "./validators";
 
 export default function ResetPassword() {
   const { resetPassword } = useAuth();
@@ -11,7 +12,20 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  function validateForm() {
+    const errors = {};
+    const passwordError = validators.password(password);
+    const passwordMatchError = validators.passwordMatch(password, confirmPassword);
+
+    if (passwordError) errors.password = passwordError;
+    if (passwordMatchError) errors.confirmPassword = passwordMatchError;
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -23,13 +37,7 @@ export default function ResetPassword() {
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+    if (!validateForm()) {
       return;
     }
 
@@ -75,6 +83,9 @@ export default function ResetPassword() {
             required
           />
         </div>
+        {validationErrors.password && (
+          <p className="text-sm text-rose-600 mt-1">{validationErrors.password}</p>
+        )}
         <div className="mt-4 input-wrap">
           <svg
             width="13"
@@ -97,6 +108,9 @@ export default function ResetPassword() {
             required
           />
         </div>
+        {validationErrors.confirmPassword && (
+          <p className="text-sm text-rose-600 mt-1">{validationErrors.confirmPassword}</p>
+        )}
 
         <button
           type="submit"

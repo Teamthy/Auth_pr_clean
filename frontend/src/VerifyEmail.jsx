@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "./context/useAuth";
 import AuthPageWrapper from "./AuthPageWrapper";
+import { validators } from "./validators";
 
 export default function VerifyEmail() {
   const { verifyEmail, resendVerification } = useAuth();
@@ -10,14 +11,32 @@ export default function VerifyEmail() {
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canSubmit = useMemo(() => email.trim() && code.trim().length === 6, [email, code]);
+
+  function validateForm() {
+    const errors = {};
+    const emailError = validators.email(email);
+    const codeError = validators.verificationCode(code);
+
+    if (emailError) errors.email = emailError;
+    if (codeError) errors.code = codeError;
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
 
   async function handleVerify(event) {
     event.preventDefault();
     setError("");
     setMessage("");
+
+    if (!validateForm()) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -77,6 +96,9 @@ export default function VerifyEmail() {
             required
           />
         </div>
+        {validationErrors.email && (
+          <p className="text-sm text-rose-600 mt-1">{validationErrors.email}</p>
+        )}
 
         <div className="mt-4 input-wrap">
           <input
@@ -89,10 +111,13 @@ export default function VerifyEmail() {
             required
           />
         </div>
+        {validationErrors.code && (
+          <p className="text-sm text-rose-600 mt-1">{validationErrors.code}</p>
+        )}
 
         <button
           type="submit"
-          disabled={!canSubmit || isSubmitting}
+          disabled={isSubmitting}
           className="btn-primary btn-primary--cyan"
         >
           {isSubmitting ? "Verifying..." : "Verify Email"}

@@ -12,6 +12,7 @@ import refreshRoutes from "./server/routes/refresh.routes.js";
 import resetRoutes from "./server/routes/reset.routes.js";
 import adminRoutes from "./server/routes/admin.routes.js";
 import { errorHandler } from "./server/middleware/error.middleware.js";
+import { csrfTokenEndpoint, validateCSRFToken } from "./server/middleware/csrf.middleware.js";
 import profileRoutes from "./server/routes/profile.js";
 
 
@@ -28,6 +29,7 @@ const allowedOrigins = (process.env.FRONTEND_ORIGINS || "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const enforceOriginCheck = process.env.ENFORCE_ORIGIN_CHECK === "true";
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -52,7 +54,21 @@ const strictAuthLimiter = rateLimit({
   message: { error: "Too many attempts from this IP. Please wait before retrying." },
 });
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "https:", "data:"],
+      fontSrc: ["'self'"],
+      connectSrc: ["'self'"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+}));
 app.use(
   cors({
     origin(origin, callback) {
@@ -69,8 +85,25 @@ app.use(
 app.use(apiLimiter);
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
+
+// CSRF token endpoint - GET /api/csrf-token
+app.get("/api/csrf-token", csrfTokenEndpoint);
+
+// CSRF validation middleware for state-changing requests
+app.use("/api/auth", validateCSRFToken);
+app.use("/api/profile", validateCSRFToken);
+app.use("/api/admin", validateCSRFToken);
+
 app.use("/api/auth", (req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
+
+  if (enforceOriginCheck && ["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+    const origin = req.get("origin");
+    if (!origin || !allowedOrigins.includes(origin)) {
+      return res.status(403).json({ error: "Origin not allowed" });
+    }
+  }
+
   next();
 });
 app.use("/api/auth/login", strictAuthLimiter);
@@ -80,6 +113,7 @@ app.use("/api/auth/resend-verification", strictAuthLimiter);
 app.use("/api/auth/forgot-password", strictAuthLimiter);
 app.use("/api/auth/reset-password", strictAuthLimiter);
 app.use("/api/auth/refresh", strictAuthLimiter);
+app.use("/api/auth/google", strictAuthLimiter);
 
 // Routes
 app.use("/api/auth", authRoutes);
