@@ -9,7 +9,12 @@ const heroImages = [
   "https://images.unsplash.com/photo-1546961329-78bef0414d7c?q=80&w=687&auto=format&fit=crop",
 ];
 
-const navItems = ["Products", "Customer Stories", "Pricing", "Docs"];
+const navItems = [
+  { label: "Sign in", to: "/login" },
+  { label: "Sign up", to: "/register" },
+  { label: "Verify Mail", to: "/verify-email" },
+  { label: "Forgot Password", to: "/forgot-password" },
+];
 
 export default function Home() {
   const { user } = useAuth();
@@ -55,9 +60,9 @@ export default function Home() {
 
           <nav className="landing-nav" aria-label="Primary">
             {navItems.map((item) => (
-              <a key={item} href="#section-main" className="landing-nav-link">
-                {item}
-              </a>
+              <Link key={item.label} to={item.to} className="landing-nav-link">
+                {item.label}
+              </Link>
             ))}
           </nav>
 
@@ -106,14 +111,14 @@ export default function Home() {
 
           <nav className="landing-mobile-nav">
             {navItems.map((item) => (
-              <a
-                key={item}
-                href="#section-main"
+              <Link
+                key={item.label}
+                to={item.to}
                 className="landing-mobile-link"
                 onClick={() => setMenuOpen(false)}
               >
-                {item}
-              </a>
+                {item.label}
+              </Link>
             ))}
             <Link to="/login" className="landing-pill landing-pill--soft" onClick={() => setMenuOpen(false)}>
               Login

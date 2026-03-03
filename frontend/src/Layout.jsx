@@ -7,7 +7,12 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const navItems = ["Products", "Customer Stories", "Pricing", "Docs"];
+  const navItems = [
+    { label: "Sign in", to: "/login" },
+    { label: "Sign up", to: "/register" },
+    { label: "Verify Mail", to: "/verify-email" },
+    { label: "Forgot Password", to: "/forgot-password" },
+  ];
 
   const isAuthPage = [
     "/login",
@@ -54,12 +59,12 @@ export default function Layout() {
             >
               {navItems.map((item) => (
                 <Link
-                  key={item}
-                  to="#"
+                  key={item.label}
+                  to={item.to}
                   className="hover:text-indigo-600"
                   onClick={() => setMenuOpen(false)}
                 >
-                  {item}
+                  {item.label}
                 </Link>
               ))}
 

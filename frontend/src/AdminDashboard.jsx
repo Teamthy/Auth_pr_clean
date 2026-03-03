@@ -17,7 +17,12 @@ export default function AdminDashboard() {
   const [activeUserId, setActiveUserId] = useState(null);
   const [error, setError] = useState("");
 
-  const navItems = ["Products", "Customer Stories", "Pricing", "Docs"];
+  const navItems = [
+    { label: "Sign in", to: "/login" },
+    { label: "Sign up", to: "/register" },
+    { label: "Verify Mail", to: "/verify-email" },
+    { label: "Forgot Password", to: "/forgot-password" },
+  ];
 
   const getErrorMessage = useCallback(
     (err, fallbackMessage) =>
@@ -154,9 +159,9 @@ export default function AdminDashboard() {
 
           <nav className="admin-ui-nav">
             {navItems.map((item) => (
-              <a key={item} href="#admin-main" className="admin-ui-nav-link">
-                {item}
-              </a>
+              <Link key={item.label} to={item.to} className="admin-ui-nav-link">
+                {item.label}
+              </Link>
             ))}
           </nav>
 
@@ -204,9 +209,14 @@ export default function AdminDashboard() {
           </button>
           <nav className="admin-ui-mobile-nav">
             {navItems.map((item) => (
-              <a key={item} href="#admin-main" className="admin-ui-mobile-link" onClick={() => setMenuOpen(false)}>
-                {item}
-              </a>
+              <Link
+                key={item.label}
+                to={item.to}
+                className="admin-ui-mobile-link"
+                onClick={() => setMenuOpen(false)}
+              >
+                {item.label}
+              </Link>
             ))}
             <Link to="/" className="admin-ui-pill admin-ui-pill--soft" onClick={() => setMenuOpen(false)}>
               Home
