@@ -7,19 +7,15 @@ import "./index.css";
 import "./App.css";
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const fallbackGoogleClientId = "missing-google-client-id.apps.googleusercontent.com";
+const effectiveGoogleClientId = googleClientId || fallbackGoogleClientId;
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    {googleClientId ? (
-      <GoogleOAuthProvider clientId={googleClientId}>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </GoogleOAuthProvider>
-    ) : (
+    <GoogleOAuthProvider clientId={effectiveGoogleClientId}>
       <AuthProvider>
         <App />
       </AuthProvider>
-    )}
+    </GoogleOAuthProvider>
   </React.StrictMode>
 );

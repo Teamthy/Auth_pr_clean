@@ -3,6 +3,7 @@ import { useGoogleLogin } from "@react-oauth/google";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "./context/useAuth";
 import AuthPageWrapper from "./AuthPageWrapper";
+import PasswordSecurityChecks from "./PasswordSecurityChecks";
 import { validators } from "./validators";
 
 export default function Register() {
@@ -12,6 +13,8 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,6 +38,16 @@ export default function Register() {
     },
     onError: () => setError("Google sign-up failed."),
   });
+
+  function handleGoogleSignUp() {
+    if (!hasGoogleClientId) {
+      setError("Google auth is not configured. Add VITE_GOOGLE_CLIENT_ID to frontend/.env and restart.");
+      return;
+    }
+
+    setError("");
+    signUpWithGoogle();
+  }
 
   function validateForm() {
     const errors = {};
@@ -84,8 +97,8 @@ export default function Register() {
         <button
           type="button"
           className="social-btn"
-          onClick={() => hasGoogleClientId && signUpWithGoogle()}
-          disabled={!hasGoogleClientId || isSubmitting}
+          onClick={handleGoogleSignUp}
+          disabled={isSubmitting}
           title={
             hasGoogleClientId
               ? "Continue with Google"
@@ -97,6 +110,11 @@ export default function Register() {
             alt="googleLogo"
           />
         </button>
+        {!hasGoogleClientId && (
+          <p className="auth-note">
+            Google auth is unavailable until `VITE_GOOGLE_CLIENT_ID` is set.
+          </p>
+        )}
 
         <div className="divider-row">
           <div className="divider-line"></div>
@@ -165,17 +183,26 @@ export default function Register() {
             />
           </svg>
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Password"
             className="input-field"
             required
           />
+          <button
+            type="button"
+            className="input-action"
+            onClick={() => setShowPassword((current) => !current)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? "Hide" : "Show"}
+          </button>
         </div>
         {validationErrors.password && (
           <p className="text-sm text-rose-600 mt-1">{validationErrors.password}</p>
         )}
+        <PasswordSecurityChecks password={password} />
 
         <div className="mt-4 input-wrap">
           <svg
@@ -191,13 +218,21 @@ export default function Register() {
             />
           </svg>
           <input
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             placeholder="Confirm Password"
             className="input-field"
             required
           />
+          <button
+            type="button"
+            className="input-action"
+            onClick={() => setShowConfirmPassword((current) => !current)}
+            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+          >
+            {showConfirmPassword ? "Hide" : "Show"}
+          </button>
         </div>
         {validationErrors.confirmPassword && (
           <p className="text-sm text-rose-600 mt-1">{validationErrors.confirmPassword}</p>

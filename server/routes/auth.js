@@ -5,6 +5,12 @@ import { register, login, googleAuth } from "../controllers/auth.controller.js";
 
 const router = Router();
 
+router.get("/google-client-id", (req, res) => {
+  return res.json({
+    clientId: process.env.GOOGLE_CLIENT_ID || null,
+  });
+});
+
 router.post(
   "/register",
   [

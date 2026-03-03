@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "./context/useAuth";
 import AuthPageWrapper from "./AuthPageWrapper";
@@ -14,7 +14,7 @@ export default function VerifyEmail() {
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const canSubmit = useMemo(() => email.trim() && code.trim().length === 6, [email, code]);
+  const canSubmit = email.trim() && code.trim().length === 6;
 
   function validateForm() {
     const errors = {};
@@ -117,7 +117,7 @@ export default function VerifyEmail() {
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || !canSubmit}
           className="btn-primary btn-primary--cyan"
         >
           {isSubmitting ? "Verifying..." : "Verify Email"}

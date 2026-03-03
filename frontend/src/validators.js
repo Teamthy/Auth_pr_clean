@@ -54,6 +54,78 @@ export const validators = {
   },
 };
 
+export function getPasswordChecks(password = "") {
+  return [
+    {
+      id: "length",
+      label: "At least 8 characters",
+      passed: password.length >= 8,
+      required: true,
+    },
+    {
+      id: "letter",
+      label: "Contains a letter",
+      passed: /[a-zA-Z]/.test(password),
+      required: true,
+    },
+    {
+      id: "number",
+      label: "Contains a number",
+      passed: /[0-9]/.test(password),
+      required: true,
+    },
+    {
+      id: "special",
+      label: "Contains a special character",
+      passed: /[^A-Za-z0-9]/.test(password),
+      required: false,
+    },
+  ];
+}
+
+export function getPasswordStrength(password = "") {
+  if (!password) {
+    return {
+      label: "None",
+      colorClass: "strength-label strength-none",
+      meterClass: "strength-fill-none",
+      width: "0%",
+    };
+  }
+
+  const scoreParts = [
+    password.length >= 8,
+    /[a-z]/.test(password),
+    /[A-Z]/.test(password),
+    /[0-9]/.test(password),
+    /[^A-Za-z0-9]/.test(password),
+  ];
+  const score = scoreParts.filter(Boolean).length;
+
+  if (score <= 2) {
+    return {
+      label: "Weak",
+      colorClass: "strength-label strength-weak",
+      meterClass: "strength-fill-weak",
+      width: "35%",
+    };
+  }
+  if (score <= 4) {
+    return {
+      label: "Medium",
+      colorClass: "strength-label strength-medium",
+      meterClass: "strength-fill-medium",
+      width: "65%",
+    };
+  }
+  return {
+    label: "Strong",
+    colorClass: "strength-label strength-strong",
+    meterClass: "strength-fill-strong",
+    width: "100%",
+  };
+}
+
 /**
  * Validate email with multiple checks
  */

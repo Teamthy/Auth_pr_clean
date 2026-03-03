@@ -13,6 +13,8 @@ import { randomInt, randomUUID } from "crypto";
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
 const VERIFY_CODE_EXPIRES_MINUTES = Number(process.env.VERIFY_CODE_EXPIRES_MINUTES) || 10;
 const RESET_TOKEN_EXPIRES_MINUTES = Number(process.env.RESET_TOKEN_EXPIRES_MINUTES) || 60;
+const GOOGLE_TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo";
+const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
 
 function publicUser(user) {
   return {
@@ -87,7 +89,36 @@ export async function register({ email, password, fullName }) {
 }
 
 export async function loginWithGoogleAccessToken(accessToken) {
-  const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+  const configuredGoogleClientId = process.env.GOOGLE_CLIENT_ID?.trim() || "";
+  const hasRealGoogleClientId =
+    Boolean(configuredGoogleClientId) &&
+    !configuredGoogleClientId.includes("your-google-client-id");
+
+  if (process.env.NODE_ENV === "production" && !hasRealGoogleClientId) {
+    const err = new Error("Google auth is not configured");
+    err.status = 500;
+    throw err;
+  }
+
+  if (hasRealGoogleClientId) {
+    const tokenInfoResponse = await fetch(
+      `${GOOGLE_TOKENINFO_URL}?access_token=${encodeURIComponent(accessToken)}`
+    );
+    if (!tokenInfoResponse.ok) {
+      const err = new Error("Google authentication failed");
+      err.status = 401;
+      throw err;
+    }
+
+    const tokenInfo = await tokenInfoResponse.json();
+    if (tokenInfo?.aud !== configuredGoogleClientId) {
+      const err = new Error("Invalid Google OAuth audience");
+      err.status = 401;
+      throw err;
+    }
+  }
+
+  const response = await fetch(GOOGLE_USERINFO_URL, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },

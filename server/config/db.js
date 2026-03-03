@@ -31,3 +31,48 @@ pool.on("acquire", () => {
 
 export const db = drizzle(pool, { schema });
 export { schema, pool };
+
+export async function ensureDatabaseCompatibility() {
+  const compatibilitySql = `
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'users'
+      ) THEN
+        ALTER TABLE public.users ADD COLUMN IF NOT EXISTS full_name varchar(150);
+        ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true;
+        ALTER TABLE public.users ADD COLUMN IF NOT EXISTS updated_at timestamp DEFAULT now();
+        ALTER TABLE public.users ADD COLUMN IF NOT EXISTS password_hash varchar(255);
+
+        UPDATE public.users
+        SET is_active = true
+        WHERE is_active IS NULL;
+
+        UPDATE public.users
+        SET updated_at = COALESCE(updated_at, created_at, NOW())
+        WHERE updated_at IS NULL;
+
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'users'
+            AND column_name = 'password'
+        ) THEN
+          UPDATE public.users
+          SET password_hash = COALESCE(password_hash, password)
+          WHERE password_hash IS NULL;
+        END IF;
+      END IF;
+    END $$;
+  `;
+
+  try {
+    await pool.query(compatibilitySql);
+    console.log("Database compatibility check completed");
+  } catch (error) {
+    console.error("Database compatibility check failed:", error.message);
+  }
+}

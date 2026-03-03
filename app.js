@@ -29,7 +29,8 @@ const allowedOrigins = (process.env.FRONTEND_ORIGINS || "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
-const enforceOriginCheck = process.env.ENFORCE_ORIGIN_CHECK === "true";
+const enforceOriginCheck =
+  process.env.ENFORCE_ORIGIN_CHECK === "true" || process.env.NODE_ENV === "production";
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

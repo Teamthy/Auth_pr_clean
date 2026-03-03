@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "./context/useAuth";
 import AuthPageWrapper from "./AuthPageWrapper";
 import { validators } from "./validators";
@@ -91,6 +92,12 @@ export default function ForgotPassword() {
         {error && (
           <p className="auth-info auth-info--error">{error}</p>
         )}
+        <p className="footer-text">
+          Back to{" "}
+          <Link to="/login" className="footer-link">
+            Login
+          </Link>
+        </p>
       </form>
     </AuthPageWrapper>
   );

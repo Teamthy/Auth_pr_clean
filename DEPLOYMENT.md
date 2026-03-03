@@ -40,6 +40,9 @@ ENFORCE_ORIGIN_CHECK=true
 COOKIE_SAME_SITE=strict
 COOKIE_SECURE=true
 
+# Google OAuth
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+
 # Expiration Times
 VERIFY_CODE_EXPIRES_MINUTES=10
 RESET_TOKEN_EXPIRES_MINUTES=60
@@ -48,12 +51,13 @@ RESET_TOKEN_EXPIRES_MINUTES=60
 **Frontend (.env):**
 ```dotenv
 VITE_API_BASE_URL=https://api.yourdomain.com/api
+VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 ```
 
 ### 2. Database Migrations
 ```bash
 # Run pending migrations before deployment
-npm run drizzle:migrate
+npm run db:migrate
 ```
 
 ### 3. Security Checklist
@@ -105,7 +109,7 @@ cd auth-platform
 npm ci --only=production
 
 # 3. Run migrations
-npm run drizzle:migrate
+npm run db:migrate
 
 # 4. Start with PM2 for process management
 npm install -g pm2
@@ -118,6 +122,7 @@ pm2 startup
 
 #### Build
 ```bash
+cd frontend
 npm run build
 ```
 
@@ -273,7 +278,7 @@ Sentry.init({
 ### Frontend
 1. **Build Optimization** - Vite handles tree-shaking and minification
 2. **Code Splitting** - Already implemented with React Router
-3. **Image Optimization** - Optimize `/public/leftSideImage.jpg`
+3. **Image Optimization** - Optimize `/public/leftSideImage.png`
 4. **Lazy Loading** - Consider lazy-loading admin dashboard:
    ```javascript
    const AdminDashboard = lazy(() => import('./AdminDashboard'));
@@ -402,5 +407,5 @@ If critical issue occurs:
 
 ---
 
-**Last Updated:** 2024
+**Last Updated:** 2026
 **Version:** 1.0.0

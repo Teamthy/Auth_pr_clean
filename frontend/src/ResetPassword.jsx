@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "./context/useAuth";
 import AuthPageWrapper from "./AuthPageWrapper";
+import PasswordSecurityChecks from "./PasswordSecurityChecks";
 import { validators } from "./validators";
 
 export default function ResetPassword() {
@@ -10,6 +11,8 @@ export default function ResetPassword() {
   const token = searchParams.get("token") || "";
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
@@ -75,17 +78,26 @@ export default function ResetPassword() {
             />
           </svg>
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="New password"
             className="input-field"
             required
           />
+          <button
+            type="button"
+            className="input-action"
+            onClick={() => setShowPassword((current) => !current)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? "Hide" : "Show"}
+          </button>
         </div>
         {validationErrors.password && (
           <p className="text-sm text-rose-600 mt-1">{validationErrors.password}</p>
         )}
+        <PasswordSecurityChecks password={password} />
         <div className="mt-4 input-wrap">
           <svg
             width="13"
@@ -100,13 +112,21 @@ export default function ResetPassword() {
             />
           </svg>
           <input
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             placeholder="Confirm password"
             className="input-field"
             required
           />
+          <button
+            type="button"
+            className="input-action"
+            onClick={() => setShowConfirmPassword((current) => !current)}
+            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+          >
+            {showConfirmPassword ? "Hide" : "Show"}
+          </button>
         </div>
         {validationErrors.confirmPassword && (
           <p className="text-sm text-rose-600 mt-1">{validationErrors.confirmPassword}</p>
@@ -131,6 +151,12 @@ export default function ResetPassword() {
         {error && (
           <p className="auth-info auth-info--error">{error}</p>
         )}
+        <p className="footer-text">
+          Back to{" "}
+          <Link to="/login" className="footer-link">
+            Login
+          </Link>
+        </p>
       </form>
     </AuthPageWrapper>
   );

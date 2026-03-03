@@ -11,6 +11,7 @@ export default function Login() {
   const { login, googleLogin } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,6 +37,16 @@ export default function Login() {
     },
     onError: () => setError("Google sign-in failed."),
   });
+
+  function handleGoogleSignIn() {
+    if (!hasGoogleClientId) {
+      setError("Google auth is not configured. Add VITE_GOOGLE_CLIENT_ID to frontend/.env and restart.");
+      return;
+    }
+
+    setError("");
+    signInWithGoogle();
+  }
 
   function validateForm() {
     const errors = {};
@@ -86,8 +97,8 @@ export default function Login() {
         <button
           type="button"
           className="social-btn"
-          onClick={() => hasGoogleClientId && signInWithGoogle()}
-          disabled={!hasGoogleClientId || isSubmitting}
+          onClick={handleGoogleSignIn}
+          disabled={isSubmitting}
           title={
             hasGoogleClientId
               ? "Continue with Google"
@@ -99,6 +110,11 @@ export default function Login() {
             alt="googleLogo"
           />
         </button>
+        {!hasGoogleClientId && (
+          <p className="auth-note">
+            Google auth is unavailable until `VITE_GOOGLE_CLIENT_ID` is set.
+          </p>
+        )}
 
         <div className="divider-row">
           <div className="divider-line"></div>
@@ -148,13 +164,21 @@ export default function Login() {
             />
           </svg>
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Password"
             className="input-field"
             required
           />
+          <button
+            type="button"
+            className="input-action"
+            onClick={() => setShowPassword((current) => !current)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? "Hide" : "Show"}
+          </button>
         </div>
         {validationErrors.password && (
           <p className="text-sm text-rose-600 mt-1">{validationErrors.password}</p>

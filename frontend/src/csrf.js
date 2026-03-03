@@ -14,7 +14,9 @@ export async function getCSRFToken() {
       return csrfTokenCache;
     }
 
-    const response = await axios.get(`${API_BASE_URL}/csrf-token`);
+    const response = await axios.get(`${API_BASE_URL}/csrf-token`, {
+      withCredentials: true,
+    });
     csrfTokenCache = response.data.csrfToken;
     return csrfTokenCache;
   } catch (error) {
